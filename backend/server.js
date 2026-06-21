@@ -48,6 +48,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/Health", require("./routes/HealthRoutes"));
+app.use("/api/auth", require("./routes/AuthRoutes"));
+
 
 // For Vercel
 const PORT = process.env.PORT || 5000;
