@@ -2,6 +2,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useRef } from 'react';
+import logo from '../assets/logo.png'; // Import the logo
 
 const Navbar = () => {
   const { user } = useAuth();
@@ -46,10 +47,14 @@ const Navbar = () => {
           <div className="flex items-center space-x-3">
             <Link to="/home" className="flex items-center space-x-3 group">
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform duration-200">
-                  <span className="text-white font-bold text-lg">GP</span>
+                <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform duration-200 overflow-hidden p-1">
+                  <img 
+                    src={logo} 
+                    alt="GyanPark Logo" 
+                    className="w-full h-full object-contain"
+                  />
                 </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-400 rounded-full animate-pulse"></div>
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-white tracking-tight">GyanPark</span>
