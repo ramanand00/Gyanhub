@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/Users");
+const User = require("../models/User");
 const { generateOTP, generateOTPExpiry } = require("../services/otpService");
 const { sendOTPEmail } = require("../services/emailService");
 

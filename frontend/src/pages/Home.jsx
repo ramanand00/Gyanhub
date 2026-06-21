@@ -1,4 +1,4 @@
-// components/Home.jsx
+// pages/Home.jsx
 import { useAuth } from '../contexts/AuthContext';
 // import Navbar from './Navbar';
 

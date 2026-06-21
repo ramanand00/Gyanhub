@@ -1,11 +1,24 @@
 // App.jsx
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AdminAuthProvider, useAdminAuth } from './contexts/AdminAuthContext';
+
+// User Pages
 import Welcome from './pages/Welcome';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+
+// Admin Pages
+import AdminLogin from './pages/admin/AdminLogin';
+import Dashboard from './pages/admin/Dashboard';
+import Users from './pages/admin/Users';
+import Courses from './pages/admin/Courses';
+import Enrollments from './pages/admin/Enrollments';
+import Admins from './pages/admin/Admins';
+
+// Components
 import Navbar from './components/Navbar';
 import NotFound from './components/NotFound';
 
@@ -24,7 +37,22 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// Protected Route Component
+// Admin Loading Component
+const AdminLoadingSpinner = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900">
+    <div className="relative">
+      <div className="w-16 h-16 border-4 border-orange-200 rounded-full animate-spin border-t-orange-500"></div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center shadow-lg">
+          <span className="text-white font-bold text-xs">GP</span>
+        </div>
+      </div>
+    </div>
+    <p className="mt-4 text-orange-400 font-medium animate-pulse">Loading Admin Panel...</p>
+  </div>
+);
+
+// User Protected Route
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -34,14 +62,13 @@ const ProtectedRoute = ({ children }) => {
   }
   
   if (!user) {
-    // Redirect to login but save the location they tried to access
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
   return children;
 };
 
-// Public Route Component (redirects to home if already logged in)
+// User Public Route (redirects to home if already logged in)
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
@@ -50,8 +77,37 @@ const PublicRoute = ({ children }) => {
   }
   
   if (user) {
-    // If user is already logged in, redirect to home
     return <Navigate to="/home" replace />;
+  }
+  
+  return children;
+};
+
+// Admin Protected Route
+const AdminProtectedRoute = ({ children }) => {
+  const { admin, loading } = useAdminAuth();
+  
+  if (loading) {
+    return <AdminLoadingSpinner />;
+  }
+  
+  if (!admin) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  
+  return children;
+};
+
+// Admin Public Route (redirects to dashboard if already logged in)
+const AdminPublicRoute = ({ children }) => {
+  const { admin, loading } = useAdminAuth();
+  
+  if (loading) {
+    return <AdminLoadingSpinner />;
+  }
+  
+  if (admin) {
+    return <Navigate to="/admin/dashboard" replace />;
   }
   
   return children;
@@ -61,16 +117,22 @@ const PublicRoute = ({ children }) => {
 function AppContent() {
   const location = useLocation();
   const { user } = useAuth();
+  const { admin } = useAdminAuth();
   
   // Define routes where navbar should be hidden
-  const hideNavbarRoutes = ['/', '/login', '/register', '/404'];
-  const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname) && user;
+  const hideNavbarRoutes = ['/', '/login', '/register', '/404', '/admin/login', '/admin/dashboard', '/admin/users', '/admin/courses', '/admin/enrollments', '/admin/admins'];
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  
+  // Show navbar only for user routes with authentication
+  const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname) && user && !isAdminRoute;
   
   return (
     <div className="min-h-screen">
       {shouldShowNavbar && <Navbar />}
       <Routes>
-        {/* Public Routes */}
+        {/* ===== USER ROUTES ===== */}
+        
+        {/* Public User Routes */}
         <Route 
           path="/" 
           element={
@@ -96,7 +158,7 @@ function AppContent() {
           } 
         />
         
-        {/* Protected Routes */}
+        {/* Protected User Routes */}
         <Route
           path="/home"
           element={
@@ -114,7 +176,63 @@ function AppContent() {
           }
         />
         
-        {/* 404 Page - Public (no authentication required) */}
+        {/* ===== ADMIN ROUTES ===== */}
+        
+        {/* Public Admin Routes */}
+        <Route 
+          path="/admin/login" 
+          element={
+            <AdminPublicRoute>
+              <AdminLogin />
+            </AdminPublicRoute>
+          } 
+        />
+        
+        {/* Protected Admin Routes */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminProtectedRoute>
+              <Dashboard />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminProtectedRoute>
+              <Users />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/courses"
+          element={
+            <AdminProtectedRoute>
+              <Courses />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/enrollments"
+          element={
+            <AdminProtectedRoute>
+              <Enrollments />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/admins"
+          element={
+            <AdminProtectedRoute>
+              <Admins />
+            </AdminProtectedRoute>
+          }
+        />
+        
+        {/* ===== ERROR ROUTES ===== */}
+        
+        {/* 404 Page - Public */}
         <Route path="/404" element={<NotFound />} />
         
         {/* Catch all route - redirect to 404 */}
@@ -129,7 +247,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppContent />
+        <AdminAuthProvider>
+          <AppContent />
+        </AdminAuthProvider>
       </AuthProvider>
     </Router>
   );

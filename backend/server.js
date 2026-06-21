@@ -9,28 +9,26 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// ✅ FIXED CORS CONFIGURATION
+// CORS Configuration
 const allowedOrigins = [
-  process.env.CLIENT_URL,                          // Local development
-  'https://gyan-park-qag2.vercel.app',             // Your current frontend
-  'https://www.gajanandmandal.com.np',             // Your custom domain
-  'https://gajanandmandal.com.np',                 // Without www
-  'https://gyan-park.vercel.app',                  // Vercel default
-  'https://gyan-park-git-main-yourusername.vercel.app', // Vercel preview
+  process.env.CLIENT_URL,
+  'https://gyan-park-qag2.vercel.app',
+  'https://www.gajanandmandal.com.np',
+  'https://gajanandmandal.com.np',
+  'https://gyan-park.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-      
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        console.log('Blocked origin:', origin); // Log for debugging
-        callback(null, true); // Remove this line to actually block
-        // callback(new Error('Not allowed by CORS')); // Uncomment to block
+        console.log('Blocked origin:', origin);
+        callback(null, true);
       }
     },
     credentials: true,
@@ -47,15 +45,29 @@ app.get("/", (req, res) => {
   res.send("GyanPark API Running");
 });
 
+// User Routes
 app.use("/api/Health", require("./routes/HealthRoutes"));
 app.use("/api/auth", require("./routes/AuthRoutes"));
 
+// Admin Routes
+app.use("/api/admin/auth", require("./routes/AdminAuthRoutes"));
+app.use("/api/admin", require("./routes/AdminRoutes"));
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: "Something went wrong!",
+  });
+});
 
 // For Vercel
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📧 Email mode: ${process.env.ENABLE_EMAIL === 'true' ? 'REAL EMAILS' : 'CONSOLE LOG'}`);
   });
 }
 
