@@ -1,8 +1,8 @@
-// components/Navbar.jsx
+// components/Navbar.jsx - Updated version without logout button
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useRef } from 'react';
-import logo from '../assets/logo.png'; // Import the logo
+import logo from '../assets/logo.png';
 
 const Navbar = () => {
   const { user } = useAuth();
@@ -26,14 +26,6 @@ const Navbar = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-    setIsDropdownOpen(false);
-    setIsMobileMenuOpen(false);
-  };
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -146,7 +138,7 @@ const Navbar = () => {
                 </div>
               </button>
 
-              {/* Dropdown Menu */}
+              {/* Dropdown Menu - Without Logout button */}
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black ring-opacity-5 transform origin-top-right transition-all duration-200">
                   {/* User Info */}
@@ -164,7 +156,7 @@ const Navbar = () => {
                     </div>
                   </div>
 
-                  {/* Menu Items */}
+                  {/* Menu Items - Removed Logout */}
                   <div className="py-2">
                     <Link
                       to="/profile"
@@ -186,16 +178,6 @@ const Navbar = () => {
                       </svg>
                       Settings
                     </Link>
-                    <div className="border-t border-gray-200 my-1"></div>
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
-                    >
-                      <svg className="w-5 h-5 mr-3 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
-                      </svg>
-                      Logout
-                    </button>
                   </div>
                 </div>
               )}
@@ -219,7 +201,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Without Logout button */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-green-500/30" ref={mobileMenuRef}>
             <div className="space-y-2">
@@ -265,17 +247,21 @@ const Navbar = () => {
                 </svg>
                 Profile
               </Link>
-              <div className="border-t border-green-500/30 my-2 pt-2">
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center w-full px-4 py-3 rounded-lg text-red-200 hover:bg-red-500/20 hover:text-white transition-colors duration-200"
-                >
-                  <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
-                  </svg>
-                  Logout
-                </button>
-              </div>
+              <Link
+                to="/settings"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
+                  isActive('/settings')
+                    ? 'bg-white/20 text-white'
+                    : 'text-green-100 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                </svg>
+                Settings
+              </Link>
+              {/* Removed Logout button from mobile menu */}
             </div>
           </div>
         )}
