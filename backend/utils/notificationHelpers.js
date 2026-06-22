@@ -204,6 +204,20 @@ class NotificationHelpers {
     );
   }
 
+  // utils/notificationHelpers.js - Add follow notification
+static async followNotification(userId, followerName, followerId) {
+  return await NotificationService.create(
+    userId,
+    'follow',
+    `👤 New Follower`,
+    `${followerName} started following you`,
+    { followerName, followerId },
+    `/profile/${followerId}`,
+    '👤',
+    'medium'
+  );
+}
+
   // System notification
   static async systemNotification(userId, title, message, link = '') {
     return await NotificationService.create(

@@ -1596,7 +1596,9 @@ router.get("/course-stats/:courseId", authenticate, async (req, res) => {
   }
 });
 
-// ==================== ADD REVIEW TO COURSE ====================
+// ==================== ADD REVIEW TO COURSE ====================// routes/CourseRoutes.js - Update the add review route
+
+// Add review to course
 router.post("/courses/:courseId/review", authenticate, async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -1656,10 +1658,15 @@ router.post("/courses/:courseId/review", authenticate, async (req, res) => {
 
     await course.save();
 
+    // Populate the user data for the new review
+    await course.populate('reviews.userId', 'name profilePicture');
+
+    const newReview = course.reviews[course.reviews.length - 1];
+
     res.status(201).json({
       success: true,
       message: "Review added successfully",
-      review: course.reviews[course.reviews.length - 1],
+      review: newReview,
       averageRating: course.rating,
     });
   } catch (error) {
@@ -1670,5 +1677,4 @@ router.post("/courses/:courseId/review", authenticate, async (req, res) => {
     });
   }
 });
-
 module.exports = router;

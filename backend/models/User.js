@@ -65,6 +65,30 @@ const userSchema = new mongoose.Schema(
       reason: String,
       portfolio: String,
     },
+
+     followers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    following: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    followersCount: {
+      type: Number,
+      default: 0,
+    },
+    followingCount: {
+      type: Number,
+      default: 0,
+    },
+    
+    // Profile visibility
+    isPublicProfile: {
+      type: Boolean,
+      default: true,
+    },
+    
     // Profile fields
     profilePicture: {
       type: String,

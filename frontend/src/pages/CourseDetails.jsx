@@ -20,6 +20,9 @@ const CourseDetails = () => {
     comment: '',
   });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [instructorFollowers, setInstructorFollowers] = useState(0);
 
   useEffect(() => {
     fetchCourseDetails();
@@ -32,13 +35,22 @@ const CourseDetails = () => {
       const res = await API.get(`/api/courses/courses/${courseId}`);
       setCourse(res.data.course);
       setIsEnrolled(res.data.course.isEnrolled || false);
+      
+      // Check if user is following the instructor
+      if (user && res.data.course.instructor) {
+        try {
+          const profileRes = await API.get(`/api/user/profile/${res.data.course.instructor._id}`);
+          setFollowing(profileRes.data.user.isFollowing || false);
+          setInstructorFollowers(profileRes.data.user.followersCount || 0);
+        } catch (err) {
+          console.error('Failed to get instructor follow status:', err);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch course details:', error);
       if (error.response?.status === 401) {
-        // Token expired, try to refresh
         try {
           await refreshToken();
-          // Retry fetch
           const retryRes = await API.get(`/api/courses/courses/${courseId}`);
           setCourse(retryRes.data.course);
           setIsEnrolled(retryRes.data.course.isEnrolled || false);
@@ -53,6 +65,35 @@ const CourseDetails = () => {
     }
   };
 
+  const handleFollowInstructor = async () => {
+    if (!user) {
+      navigate('/login', { state: { from: `/course/${courseId}` } });
+      return;
+    }
+
+    if (!course?.instructor?._id) return;
+
+    setFollowLoading(true);
+    try {
+      if (following) {
+        await API.post(`/api/user/unfollow/${course.instructor._id}`);
+        setFollowing(false);
+        setInstructorFollowers(prev => prev - 1);
+      } else {
+        await API.post(`/api/user/follow/${course.instructor._id}`);
+        setFollowing(true);
+        setInstructorFollowers(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Follow action failed:', error);
+      if (error.response?.status === 401) {
+        navigate('/login');
+      }
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   const handleEnroll = async () => {
     if (!user) {
       navigate('/login', { state: { from: `/course/${courseId}` } });
@@ -64,7 +105,6 @@ const CourseDetails = () => {
     setSuccess('');
 
     try {
-      // Validate courseId exists
       if (!courseId || courseId === 'undefined' || courseId === 'null') {
         setError('Invalid course ID. Please refresh the page and try again.');
         setEnrolling(false);
@@ -87,7 +127,6 @@ const CourseDetails = () => {
       }
 
       if (res.data.requiresPayment) {
-        // Redirect to payment
         setSuccess('Redirecting to payment...');
         setTimeout(() => {
           navigate(`/payment/${courseId}`, {
@@ -101,7 +140,6 @@ const CourseDetails = () => {
         return;
       }
 
-      // Success - free course enrolled
       setSuccess('🎉 Successfully enrolled in the course!');
       setIsEnrolled(true);
       setTimeout(() => {
@@ -124,10 +162,8 @@ const CourseDetails = () => {
           setError(errorData?.message || 'Failed to enroll in course. Please try again.');
         }
       } else if (statusCode === 401) {
-        // Token expired - refresh and retry
         try {
           await refreshToken();
-          // Retry enrollment
           const retryRes = await API.post(`/api/courses/enroll/${courseId}`);
           if (retryRes.data.requiresPayment) {
             navigate(`/payment/${courseId}`, {
@@ -169,13 +205,14 @@ const CourseDetails = () => {
       setSuccess('✅ Review submitted successfully!');
       setShowReviewForm(false);
       setReviewData({ rating: 5, comment: '' });
+      
       // Update course with new review
-      setCourse(prev => ({
-        ...prev,
-        reviews: [...(prev.reviews || []), res.data.review],
-        averageRating: res.data.averageRating,
-        totalReviews: (prev.totalReviews || 0) + 1,
-      }));
+      const updatedCourse = { ...course };
+      updatedCourse.reviews = [...(course.reviews || []), res.data.review];
+      updatedCourse.averageRating = res.data.averageRating;
+      updatedCourse.totalReviews = (course.totalReviews || 0) + 1;
+      setCourse(updatedCourse);
+      
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to submit review');
@@ -184,7 +221,6 @@ const CourseDetails = () => {
     }
   };
 
-  // Render stars for rating display
   const renderStars = (rating) => {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
@@ -203,7 +239,6 @@ const CourseDetails = () => {
     );
   };
 
-  // Render star rating input
   const renderStarInput = () => {
     return (
       <div className="flex space-x-2">
@@ -270,11 +305,13 @@ const CourseDetails = () => {
     );
   }
 
+  const isOwnProfile = user?._id === course.instructor?._id;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50">
       {/* Messages */}
       {success && (
-        <div className="fixed top-20 right-4 z-50 max-w-md">
+        <div className="fixed top-20 right-4 z-50 max-w-md animate-slide-in">
           <div className="bg-green-50 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded-lg shadow-lg flex items-center">
             <svg className="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -284,7 +321,7 @@ const CourseDetails = () => {
         </div>
       )}
       {error && (
-        <div className="fixed top-20 right-4 z-50 max-w-md">
+        <div className="fixed top-20 right-4 z-50 max-w-md animate-slide-in">
           <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg shadow-lg flex items-center">
             <svg className="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -320,16 +357,52 @@ const CourseDetails = () => {
               <p className="text-lg text-green-100 mb-4">{course.shortDescription || course.description}</p>
               
               <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold">
-                      {course.instructor?.name?.charAt(0) || 'I'}
+                {/* Instructor Info - Clickable */}
+                <div className="flex items-center space-x-3">
+                  <Link 
+                    to={`/profile/${course.instructor?._id}`}
+                    className="flex items-center space-x-2 group"
+                  >
+                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center overflow-hidden">
+                      {course.instructor?.profilePicture ? (
+                        <img 
+                          src={course.instructor.profilePicture} 
+                          alt={course.instructor.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white font-bold">
+                          {course.instructor?.name?.charAt(0) || 'I'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-medium group-hover:text-green-200 transition-colors group-hover:underline">
+                        {course.instructor?.name || 'Instructor'}
+                      </p>
+                      <p className="text-xs text-green-200">Instructor</p>
+                    </div>
+                  </Link>
+                  
+                  {/* Follow Instructor Button */}
+                  {user && !isOwnProfile && course.instructor && (
+                    <button
+                      onClick={handleFollowInstructor}
+                      disabled={followLoading}
+                      className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                        following
+                          ? 'bg-green-700/50 text-green-200 hover:bg-green-700'
+                          : 'bg-white/20 text-white hover:bg-white/30'
+                      } disabled:opacity-50`}
+                    >
+                      {followLoading ? '...' : following ? '✓ Following' : '+ Follow'}
+                    </button>
+                  )}
+                  {instructorFollowers > 0 && (
+                    <span className="text-xs text-green-200">
+                      {instructorFollowers} follower{instructorFollowers > 1 ? 's' : ''}
                     </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{course.instructor?.name || 'Instructor'}</p>
-                    <p className="text-xs text-green-200">Instructor</p>
-                  </div>
+                  )}
                 </div>
 
                 {course.averageRating > 0 && (
@@ -411,6 +484,33 @@ const CourseDetails = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Instructor Mini Profile */}
+                {course.instructor && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <Link 
+                      to={`/profile/${course.instructor._id}`}
+                      className="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded-lg transition-colors group"
+                    >
+                      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {course.instructor.profilePicture ? (
+                          <img src={course.instructor.profilePicture} alt={course.instructor.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-white font-bold text-sm">{course.instructor.name?.charAt(0) || 'I'}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 group-hover:text-green-600 transition-colors">
+                          {course.instructor.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {course.instructor.totalCourses || 0} courses • {course.instructor.totalStudents || 0} students
+                        </p>
+                      </div>
+                      <span className="text-xs text-green-600 group-hover:underline">View Profile →</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -474,9 +574,9 @@ const CourseDetails = () => {
 
             {/* Reviews Section */}
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <h2 className="text-xl font-bold text-gray-800">⭐ Reviews</h2>
-                {user && isEnrolled && !course.reviews?.some(r => r.userId === user._id) && (
+                {user && isEnrolled && !course.reviews?.some(r => r.userId?._id === user._id) && (
                   <button
                     onClick={() => setShowReviewForm(!showReviewForm)}
                     className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
@@ -518,31 +618,52 @@ const CourseDetails = () => {
               {/* Reviews List */}
               {course.reviews && course.reviews.length > 0 ? (
                 <div className="space-y-4">
-                  {course.reviews.slice().reverse().map((review, index) => (
-                    <div key={index} className="border-b border-gray-100 pb-4 last:border-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
-                            <span className="text-white text-sm font-bold">
-                              {review.userId?.name?.charAt(0) || 'U'}
-                            </span>
+                  {course.reviews.slice().reverse().map((review, index) => {
+                    const reviewerName = review.userId?.name || 'Anonymous';
+                    const reviewerProfilePic = review.userId?.profilePicture || null;
+                    const reviewerId = review.userId?._id;
+                    
+                    return (
+                      <div key={index} className="border-b border-gray-100 pb-4 last:border-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center space-x-2">
+                            {reviewerProfilePic ? (
+                              <img 
+                                src={reviewerProfilePic} 
+                                alt={reviewerName} 
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                                <span className="text-white text-sm font-bold">
+                                  {reviewerName.charAt(0)}
+                                </span>
+                              </div>
+                            )}
+                            {reviewerId ? (
+                              <Link 
+                                to={`/profile/${reviewerId}`}
+                                className="font-semibold text-gray-800 hover:text-green-600 transition-colors"
+                              >
+                                {reviewerName}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-gray-800">{reviewerName}</span>
+                            )}
                           </div>
-                          <span className="font-semibold text-gray-800">
-                            {review.userId?.name || 'Anonymous'}
+                          <span className="text-sm text-gray-400">
+                            {new Date(review.createdAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <span className="text-sm text-gray-400">
-                          {new Date(review.createdAt).toLocaleDateString()}
-                        </span>
+                        <div className="flex items-center space-x-2 mb-1">
+                          {renderStars(review.rating)}
+                        </div>
+                        {review.comment && (
+                          <p className="text-gray-600">{review.comment}</p>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-2 mb-1">
-                        {renderStars(review.rating)}
-                      </div>
-                      {review.comment && (
-                        <p className="text-gray-600">{review.comment}</p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-500 text-center py-4">No reviews yet. Be the first to review!</p>
@@ -609,6 +730,23 @@ const CourseDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in {
+          animation: slideIn 0.3s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };

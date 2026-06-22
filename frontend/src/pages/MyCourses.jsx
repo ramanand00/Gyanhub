@@ -12,9 +12,14 @@ const MyCourses = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isCreator, setIsCreator] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     checkCreatorStatus();
+  }, []);
+
+  useEffect(() => {
     if (isCreator) {
       fetchCourses();
     }
@@ -36,18 +41,41 @@ const MyCourses = () => {
       setCourses(res.data.courses);
     } catch (error) {
       setError('Failed to load courses');
+      console.error('Error fetching courses:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteCourse = async (courseId) => {
-    if (!confirm('Are you sure you want to delete this course?')) return;
+    setDeleting(true);
     try {
       await API.delete(`/api/courses/courses/${courseId}`);
+      setShowDeleteModal(null);
       fetchCourses();
     } catch (error) {
       setError('Failed to delete course');
+      console.error('Error deleting course:', error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleEditCourse = (courseId) => {
+    navigate(`/course-builder/${courseId}`);
+  };
+
+  const handleEditDetails = (courseId) => {
+    navigate(`/course-edit/${courseId}`);
+  };
+
+  const handlePublishCourse = async (courseId) => {
+    try {
+      await API.put(`/api/courses/courses/${courseId}/publish`);
+      fetchCourses();
+    } catch (error) {
+      setError('Failed to publish course');
+      console.error('Error publishing course:', error);
     }
   };
 
@@ -59,6 +87,16 @@ const MyCourses = () => {
       pending: 'bg-blue-100 text-blue-800',
     };
     return badges[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getStatusText = (status) => {
+    const texts = {
+      draft: '📝 Draft',
+      published: '✅ Published',
+      archived: '📦 Archived',
+      pending: '⏳ Pending',
+    };
+    return texts[status] || status;
   };
 
   if (!isCreator) {
@@ -80,15 +118,15 @@ const MyCourses = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">My Courses</h1>
             <p className="text-gray-600">Manage your courses</p>
           </div>
           <Link
             to="/create-course"
-            className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-colors shadow-md hover:shadow-lg"
+            className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-colors shadow-md hover:shadow-lg whitespace-nowrap"
           >
             + Create New Course
           </Link>
@@ -119,58 +157,129 @@ const MyCourses = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (
-              <div key={course._id} className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+              <div key={course._id} className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300 flex flex-col">
+                {/* Thumbnail */}
                 <div className="relative">
                   <img
-                    src={course.thumbnail || 'https://via.placeholder.com/400x200/059669/ffffff?text=Course'}
+                    src={course.thumbnail || 'https://via.placeholder.com/400x225/059669/ffffff?text=Course'}
                     alt={course.title}
                     className="w-full h-48 object-cover"
                   />
                   <span className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(course.status)}`}>
-                    {course.status}
+                    {getStatusText(course.status)}
                   </span>
                   {course.isFeatured && (
                     <span className="absolute top-3 left-3 px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-semibold">
-                      Featured
+                      ⭐ Featured
+                    </span>
+                  )}
+                  {course.discountPrice && course.discountPrice < course.price && (
+                    <span className="absolute bottom-3 right-3 px-3 py-1 bg-red-500 text-white rounded-full text-xs font-semibold">
+                      {Math.round((1 - course.discountPrice / course.price) * 100)}% OFF
                     </span>
                   )}
                 </div>
                 
-                <div className="p-5">
-                  <h3 className="font-semibold text-gray-800 text-lg mb-2 line-clamp-2">{course.title}</h3>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{course.description}</p>
-                  
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>{course.category}</span>
-                    <span>{course.level}</span>
-                    <span>{course.enrollments || 0} students</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-gray-800">
-                      {course.price === 0 ? 'Free' : `Rs. ${course.price}`}
-                      {course.discountPrice && (
-                        <span className="text-sm text-gray-400 line-through ml-2">Rs. {course.discountPrice}</span>
-                      )}
-                    </span>
-                    <div className="flex space-x-2">
-                      <Link
-                        to={`/course-builder/${course._id}`}
-                        className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDeleteCourse(course._id)}
-                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
-                      >
-                        Delete
-                      </button>
+                {/* Course Info */}
+                <div className="p-5 flex flex-col flex-1">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800 text-lg mb-2 line-clamp-2">
+                      {course.title}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                      {course.shortDescription || course.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
+                      <span>{course.category}</span>
+                      <span>{course.level}</span>
+                      <span>{course.enrollments || 0} students</span>
                     </div>
+                    
+                    <div className="flex items-center justify-between text-sm mb-4">
+                      <span className="text-lg font-bold text-gray-800">
+                        {course.price === 0 ? 'Free' : `Rs. ${course.price}`}
+                        {course.discountPrice && course.discountPrice < course.price && (
+                          <span className="text-sm text-gray-400 line-through ml-2">Rs. {course.discountPrice}</span>
+                        )}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        📚 {course.totalLessons || 0} lessons
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-2 mt-2 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => handleEditCourse(course._id)}
+                      className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
+                    >
+                      ✏️ Edit Content
+                    </button>
+                    <button
+                      onClick={() => handleEditDetails(course._id)}
+                      className="px-3 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 transition-colors"
+                    >
+                      ⚙️ Edit Details
+                    </button>
+                    {course.status === 'draft' && (
+                      <button
+                        onClick={() => handlePublishCourse(course._id)}
+                        className="col-span-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
+                      >
+                        🚀 Publish Course
+                      </button>
+                    )}
+                    {course.status === 'published' && (
+                      <Link
+                        to={`/course/${course._id}`}
+                        target="_blank"
+                        className="col-span-2 px-3 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors text-center"
+                      >
+                        👁️ View Course
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => setShowDeleteModal(course)}
+                      className="col-span-2 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+                    >
+                      🗑️ Delete Course
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+              <div className="text-center">
+                <div className="text-6xl mb-4">⚠️</div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Delete Course</h3>
+                <p className="text-gray-600 mb-4">
+                  Are you sure you want to delete "{showDeleteModal.title}"? This action cannot be undone.
+                </p>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowDeleteModal(null)}
+                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCourse(showDeleteModal._id)}
+                    disabled={deleting}
+                    className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                  >
+                    {deleting ? 'Deleting...' : 'Delete Course'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

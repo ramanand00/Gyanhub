@@ -13,6 +13,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Settings from './pages/Settings';
 import Courses from './pages/Courses';
+import UserProfile from './pages/UserProfile';
+import EditCourse from './pages/EditCourse';
 import Notifications from './pages/Notifications';
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -188,8 +190,9 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        <Route path="/profile/:userId" element={<UserProfile />} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-
+        <Route path="/course-edit/:courseId" element={<ProtectedRoute><EditCourse /></ProtectedRoute>} />
         
         {/* ===== ADMIN ROUTES ===== */}
         
