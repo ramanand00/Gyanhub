@@ -58,6 +58,7 @@ if (shouldSendRealEmails) {
   }
 }
 
+// Send OTP Email
 const sendOTPEmail = async (email, otp, name) => {
   console.log(`📧 Attempting to send OTP to: ${email}`);
   console.log(`📧 Transporter status: ${transporter ? '✅ Ready' : '❌ Not configured'}`);
@@ -140,4 +141,145 @@ const sendOTPEmail = async (email, otp, name) => {
   }
 };
 
-module.exports = { sendOTPEmail };
+// Send Password Reset Email
+const sendPasswordResetEmail = async (email, name, resetLink) => {
+  console.log(`📧 Sending password reset email to: ${email}`);
+  console.log(`📧 Transporter status: ${transporter ? '✅ Ready' : '❌ Not configured'}`);
+  
+  if (!shouldSendRealEmails || !transporter) {
+    console.log('📧 ===== PASSWORD RESET EMAIL (Fallback) =====');
+    console.log(`📧 To: ${email}`);
+    console.log(`📧 Reset Link: ${resetLink}`);
+    console.log('📧 ============================================');
+    return;
+  }
+
+  try {
+    const mailOptions = {
+      from: `"GyanPark" <${emailUser}>`,
+      to: email,
+      subject: 'GyanPark - Password Reset Request',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="background: #059669; padding: 20px; border-radius: 10px 10px 0 0; margin: -20px -20px 30px -20px;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">🎓 GyanPark</h1>
+              <p style="color: #a7f3d0; margin: 5px 0 0 0;">Learning Platform</p>
+            </div>
+          </div>
+          
+          <div style="padding: 0 20px;">
+            <h2 style="color: #1f2937; font-size: 22px;">Password Reset Request</h2>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Hello ${name},</p>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">We received a request to reset your password for your GyanPark account.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" style="display: inline-block; padding: 14px 40px; background: linear-gradient(to right, #059669, #047857); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                Reset Password
+              </a>
+            </div>
+            
+            <p style="color: #4b5563; font-size: 14px;">Or copy and paste this link in your browser:</p>
+            <p style="color: #059669; font-size: 14px; word-break: break-all; background: #f3f4f6; padding: 12px; border-radius: 6px;">
+              ${resetLink}
+            </p>
+            
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <p style="color: #92400e; margin: 0; font-size: 14px;">
+                ⏰ This link is valid for 1 hour.
+              </p>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+            
+            <hr style="border: 1px solid #e5e7eb; margin: 30px 0;" />
+            
+            <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+              © ${new Date().getFullYear()} GyanPark. All rights reserved.<br>
+              Empowering Education
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Password reset email sent successfully!`);
+    console.log(`📧 Message ID: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error('❌ Error sending password reset email:', error.message);
+    console.log('📧 ===== FALLBACK: Reset Link =====');
+    console.log(`📧 To: ${email}`);
+    console.log(`📧 Reset Link: ${resetLink}`);
+    console.log('📧 =================================');
+    return;
+  }
+};
+
+// Send Password Reset Success Email
+const sendPasswordResetSuccessEmail = async (email, name) => {
+  console.log(`📧 Sending password reset success email to: ${email}`);
+  console.log(`📧 Transporter status: ${transporter ? '✅ Ready' : '❌ Not configured'}`);
+  
+  if (!shouldSendRealEmails || !transporter) {
+    console.log('📧 ===== PASSWORD RESET SUCCESS EMAIL (Fallback) =====');
+    console.log(`📧 To: ${email}`);
+    console.log('📧 ====================================================');
+    return;
+  }
+
+  try {
+    const mailOptions = {
+      from: `"GyanPark" <${emailUser}>`,
+      to: email,
+      subject: '✅ GyanPark - Password Reset Successful',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="background: #059669; padding: 20px; border-radius: 10px 10px 0 0; margin: -20px -20px 30px -20px;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">🎓 GyanPark</h1>
+              <p style="color: #a7f3d0; margin: 5px 0 0 0;">Learning Platform</p>
+            </div>
+          </div>
+          
+          <div style="padding: 0 20px;">
+            <h2 style="color: #1f2937; font-size: 22px;">Password Reset Successful ✅</h2>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Hello ${name},</p>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Your password has been successfully reset.</p>
+            
+            <div style="background: #ecfdf5; border-left: 4px solid #059669; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <p style="color: #065f46; margin: 0; font-size: 14px;">
+                🔒 Your account is now secure with your new password.
+              </p>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 14px;">If you didn't make this change, please contact our support team immediately.</p>
+            
+            <hr style="border: 1px solid #e5e7eb; margin: 30px 0;" />
+            
+            <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+              © ${new Date().getFullYear()} GyanPark. All rights reserved.<br>
+              Empowering Education
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Password reset success email sent!`);
+    console.log(`📧 Message ID: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error('❌ Error sending password reset success email:', error.message);
+    return;
+  }
+};
+
+// Export all functions
+module.exports = { 
+  sendOTPEmail, 
+  sendPasswordResetEmail, 
+  sendPasswordResetSuccessEmail 
+};

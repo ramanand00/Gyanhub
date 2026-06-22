@@ -1,3 +1,4 @@
+// models/User.js
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
@@ -26,6 +27,13 @@ const userSchema = new mongoose.Schema(
     otp: {
       code: String,
       expiresAt: Date,
+    },
+    // Add these fields for password reset
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpires: {
+      type: Date,
     },
   },
   {

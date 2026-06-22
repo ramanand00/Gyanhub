@@ -50,6 +50,8 @@ app.get("/", (req, res) => {
 app.use("/api/Health", require("./routes/HealthRoutes"));
 app.use("/api/auth", require("./routes/AuthRoutes"));
 
+app.use("/api/password", require("./routes/PasswordResetRoutes")); 
+app.use("/api/settings", require("./routes/SettingsRoutes"));
 // Admin Routes
 app.use("/api/admin/auth", require("./routes/AdminAuthRoutes"));
 app.use("/api/admin", require("./routes/AdminRoutes"));

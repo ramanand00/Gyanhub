@@ -9,6 +9,9 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Settings from './pages/Settings';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -229,6 +232,10 @@ function AppContent() {
             </AdminProtectedRoute>
           }
         />
+        
+<Route path="/forgot-password" element={<ForgotPassword />} />
+<Route path="/reset-password/:token" element={<ResetPassword />} />
+<Route path="/settings" element={<Settings />} />
         
         {/* ===== ERROR ROUTES ===== */}
         
