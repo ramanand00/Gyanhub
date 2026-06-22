@@ -1,6 +1,7 @@
 // routes/CourseRoutes.js
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const Course = require("../models/Course");
 const Module = require("../models/Module");
 const Lesson = require("../models/Lesson");
@@ -8,224 +9,12 @@ const Quiz = require("../models/Quiz");
 const Assignment = require("../models/Assignment");
 const Enrollment = require("../models/Enrollment");
 const User = require("../models/User");
-const { authenticate } = require("../middleware/auth");
+const { authenticate, optionalAuth } = require("../middleware/auth");
 const cloudinary = require("../config/cloudinary");
+const NotificationHelpers = require("../utils/notificationHelpers");
 
-// ==================== CREATOR ROLE MANAGEMENT ====================
-
-// Request to become a creator
-router.post("/request-creator", authenticate, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    
-    if (user.isCreator) {
-      return res.status(400).json({
-        success: false,
-        message: "You are already a creator",
-      });
-    }
-
-    if (user.creatorRequest?.status === 'pending') {
-      return res.status(400).json({
-        success: false,
-        message: "Your request is already pending approval",
-      });
-    }
-
-    user.creatorRequest = {
-      status: 'pending',
-      requestedAt: new Date(),
-    };
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Creator request submitted successfully. Please wait for approval.",
-    });
-  } catch (error) {
-    console.error("Request creator error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-});
-
-// Check creator status
-router.get("/creator-status", authenticate, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    
-    res.status(200).json({
-      success: true,
-      isCreator: user.isCreator,
-      creatorRequest: user.creatorRequest,
-    });
-  } catch (error) {
-    console.error("Creator status error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-});
-
-// ==================== COURSE MANAGEMENT ====================
-
-// Create a new course
-router.post("/courses", authenticate, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    
-    if (!user.isCreator) {
-      return res.status(403).json({
-        success: false,
-        message: "Only creators can create courses",
-      });
-    }
-
-    const {
-      title,
-      description,
-      shortDescription,
-      category,
-      subCategory,
-      level,
-      price,
-      discountPrice,
-      thumbnail,
-      learningOutcomes,
-      prerequisites,
-      targetAudience,
-      language,
-      tags,
-      whatYouWillLearn,
-      requirements,
-    } = req.body;
-
-    // Handle thumbnail upload if it's base64
-    let thumbnailUrl = thumbnail;
-    if (thumbnail && thumbnail.startsWith('data:image')) {
-      const uploadResponse = await cloudinary.uploader.upload(thumbnail, {
-        folder: 'course_thumbnails',
-        width: 1200,
-        height: 630,
-        crop: 'limit',
-        quality: 'auto',
-      });
-      thumbnailUrl = uploadResponse.secure_url;
-    }
-
-    const course = new Course({
-      title,
-      description,
-      shortDescription,
-      category,
-      subCategory,
-      level,
-      price: price || 0,
-      discountPrice: discountPrice || 0,
-      thumbnail: thumbnailUrl,
-      instructor: req.user._id,
-      learningOutcomes: learningOutcomes || [],
-      prerequisites: prerequisites || [],
-      targetAudience: targetAudience || [],
-      language: language || 'English',
-      tags: tags || [],
-      whatYouWillLearn: whatYouWillLearn || [],
-      requirements: requirements || [],
-      isPaid: price > 0,
-      status: 'draft',
-      isPublished: false,
-    });
-
-    await course.save();
-
-    // Update user's total courses
-    user.totalCourses += 1;
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      message: "Course created successfully",
-      course,
-    });
-  } catch (error) {
-    console.error("Create course error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-});
-
-// Get all courses for a creator
-router.get("/creator-courses", authenticate, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    
-    if (!user.isCreator) {
-      return res.status(403).json({
-        success: false,
-        message: "Only creators can access this",
-      });
-    }
-
-    const courses = await Course.find({ instructor: req.user._id })
-      .populate('modules')
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      courses,
-    });
-  } catch (error) {
-    console.error("Get creator courses error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-});
-
-// Get single course with full details
-router.get("/courses/:courseId", async (req, res) => {
-  try {
-    const course = await Course.findById(req.params.courseId)
-      .populate({
-        path: 'modules',
-        populate: {
-          path: 'lessons',
-          populate: {
-            path: 'quiz',
-          },
-        },
-      })
-      .populate('instructor', 'name email profilePicture bio');
-
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      course,
-    });
-  } catch (error) {
-    console.error("Get course error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-});
-// routes/CourseRoutes.js - Add this route at the top
-
-// Get all published courses (public)
-router.get("/published", async (req, res) => {
+// ==================== GET ALL PUBLISHED COURSES ====================
+router.get("/published", optionalAuth, async (req, res) => {
   try {
     const { page = 1, limit = 12, category, level, search, sort } = req.query;
     
@@ -312,10 +101,76 @@ router.get("/published", async (req, res) => {
   }
 });
 
-// Get course by ID (with enrollment check)
-router.get("/courses/:courseId", async (req, res) => {
+// ==================== CHECK COURSE AVAILABILITY ====================
+router.get("/course-availability/:courseId", optionalAuth, async (req, res) => {
   try {
-    const course = await Course.findById(req.params.courseId)
+    const { courseId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+        available: false
+      });
+    }
+
+    const course = await Course.findById(courseId).select('title status isPublished price isPaid');
+    
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+        available: false
+      });
+    }
+
+    const isAvailable = course.status === 'published' && course.isPublished === true;
+    
+    let isEnrolled = false;
+    if (req.user) {
+      const enrollment = await Enrollment.findOne({
+        user: req.user._id,
+        course: courseId,
+      });
+      isEnrolled = !!enrollment;
+    }
+
+    res.status(200).json({
+      success: true,
+      available: isAvailable,
+      isEnrolled,
+      course: {
+        _id: course._id,
+        title: course.title,
+        isPaid: course.isPaid,
+        price: course.price,
+        status: course.status,
+        isPublished: course.isPublished,
+      }
+    });
+  } catch (error) {
+    console.error("Course availability check error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      available: false
+    });
+  }
+});
+
+// ==================== GET COURSE BY ID ====================
+router.get("/courses/:courseId", optionalAuth, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
+
+    const course = await Course.findById(courseId)
       .populate({
         path: 'modules',
         populate: {
@@ -334,7 +189,6 @@ router.get("/courses/:courseId", async (req, res) => {
       });
     }
 
-    // Check if user is enrolled (if authenticated)
     let isEnrolled = false;
     let enrollment = null;
     
@@ -346,7 +200,6 @@ router.get("/courses/:courseId", async (req, res) => {
       isEnrolled = !!enrollment;
     }
 
-    // Calculate average rating
     const totalReviews = course.reviews?.length || 0;
     const averageRating = totalReviews > 0 
       ? course.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews 
@@ -370,10 +223,599 @@ router.get("/courses/:courseId", async (req, res) => {
     });
   }
 });
-// Update course
+
+// ==================== GET COURSE CONTENT (FOR ENROLLED USERS) ====================
+router.get("/course-content/:courseId", authenticate, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
+
+    const course = await Course.findById(courseId)
+      .populate({
+        path: 'modules',
+        populate: [
+          {
+            path: 'lessons',
+            populate: {
+              path: 'quiz',
+            },
+          },
+          {
+            path: 'quiz',
+          },
+        ],
+      })
+      .populate('instructor', 'name email profilePicture');
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    const enrollment = await Enrollment.findOne({
+      user: req.user._id,
+      course: course._id,
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({
+        success: false,
+        message: "You need to enroll in this course to access the content",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      course,
+      enrollment,
+    });
+  } catch (error) {
+    console.error("Get course content error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// ==================== ENROLL IN COURSE ====================
+router.post("/enroll/:courseId", authenticate, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    console.log(`📚 Enrollment request for course: ${courseId} by user: ${req.user._id}`);
+
+    if (!courseId || courseId === 'undefined' || courseId === 'null') {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID. Please provide a valid course identifier.",
+        code: "INVALID_COURSE_ID"
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID format.",
+        code: "INVALID_OBJECT_ID"
+      });
+    }
+
+    const course = await Course.findById(courseId);
+    
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found.",
+        code: "COURSE_NOT_FOUND"
+      });
+    }
+
+    console.log(`✅ Course found: ${course.title}`);
+
+    if (course.status !== 'published' || !course.isPublished) {
+      return res.status(400).json({
+        success: false,
+        message: "This course is not available for enrollment yet.",
+        code: "COURSE_NOT_PUBLISHED"
+      });
+    }
+
+    const existingEnrollment = await Enrollment.findOne({
+      user: req.user._id,
+      course: course._id,
+    });
+
+    if (existingEnrollment) {
+      return res.status(200).json({
+        success: true,
+        alreadyEnrolled: true,
+        message: "You are already enrolled in this course",
+        enrollment: existingEnrollment,
+        course: {
+          _id: course._id,
+          title: course.title,
+        }
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user || user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is not active. Please contact support.",
+        code: "ACCOUNT_INACTIVE"
+      });
+    }
+
+    if (course.isPaid && course.price > 0) {
+      return res.status(200).json({
+        success: true,
+        requiresPayment: true,
+        courseId: course._id,
+        amount: course.discountPrice || course.price,
+        message: "This course requires payment. Please proceed to payment.",
+        course: {
+          _id: course._id,
+          title: course.title,
+          price: course.price,
+          discountPrice: course.discountPrice,
+        }
+      });
+    }
+
+    const modules = await Module.find({ courseId: course._id });
+
+    const enrollment = new Enrollment({
+      user: req.user._id,
+      course: course._id,
+      paymentStatus: 'free',
+      amount: 0,
+      progress: 0,
+      moduleProgress: modules.map(module => ({
+        moduleId: module._id,
+        completed: false,
+        lessonProgress: [],
+        quizAttempts: [],
+      })),
+    });
+
+    await enrollment.save();
+    console.log(`✅ Enrollment created for user: ${req.user.email}, course: ${course.title}`);
+
+    course.students = course.students || [];
+    const alreadyInCourse = course.students.some(s => s.userId.toString() === req.user._id.toString());
+    if (!alreadyInCourse) {
+      course.students.push({
+        userId: req.user._id,
+        enrolledAt: new Date(),
+      });
+    }
+    course.enrollments = (course.enrollments || 0) + 1;
+    await course.save();
+
+    try {
+      await NotificationHelpers.courseEnrollment(req.user._id, course.title, course._id);
+    } catch (notificationError) {
+      console.error('⚠️ Notification error (non-critical):', notificationError.message);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Successfully enrolled in the course",
+      enrollment,
+      course: {
+        _id: course._id,
+        title: course.title,
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Enroll error:", error);
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID format",
+        code: "CAST_ERROR"
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error: " + error.message,
+        code: "VALIDATION_ERROR"
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to enroll in course. Please try again.",
+      code: "ENROLLMENT_FAILED",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// ==================== UPDATE LESSON PROGRESS ====================
+router.put("/lesson-progress/:courseId/:moduleId/:lessonId", authenticate, async (req, res) => {
+  try {
+    const { courseId, moduleId, lessonId } = req.params;
+    const { completed } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId) || 
+        !mongoose.Types.ObjectId.isValid(moduleId) || 
+        !mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+      });
+    }
+
+    const enrollment = await Enrollment.findOne({
+      user: req.user._id,
+      course: courseId,
+    });
+
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: "Enrollment not found",
+      });
+    }
+
+    let moduleProgress = enrollment.moduleProgress.find(
+      mp => mp.moduleId.toString() === moduleId
+    );
+
+    if (!moduleProgress) {
+      moduleProgress = {
+        moduleId: moduleId,
+        completed: false,
+        lessonProgress: [],
+        quizAttempts: [],
+      };
+      enrollment.moduleProgress.push(moduleProgress);
+      moduleProgress = enrollment.moduleProgress.find(
+        mp => mp.moduleId.toString() === moduleId
+      );
+    }
+
+    let lessonProgress = moduleProgress.lessonProgress.find(
+      lp => lp.lessonId.toString() === lessonId
+    );
+
+    if (!lessonProgress) {
+      lessonProgress = {
+        lessonId: lessonId,
+        completed: false,
+      };
+      moduleProgress.lessonProgress.push(lessonProgress);
+      lessonProgress = moduleProgress.lessonProgress.find(
+        lp => lp.lessonId.toString() === lessonId
+      );
+    }
+
+    lessonProgress.completed = completed;
+    if (completed) {
+      lessonProgress.completedAt = new Date();
+    }
+
+    const module = await Module.findById(moduleId);
+    if (module) {
+      const allLessonsCompleted = module.lessons.every(lesson => {
+        const lp = moduleProgress.lessonProgress.find(
+          p => p.lessonId.toString() === lesson._id.toString()
+        );
+        return lp?.completed;
+      });
+
+      if (allLessonsCompleted && !moduleProgress.completed) {
+        moduleProgress.completed = true;
+        moduleProgress.completedAt = new Date();
+      }
+    }
+
+    const course = await Course.findById(courseId);
+    if (course && course.modules.length > 0) {
+      const totalModules = course.modules.length;
+      const completedModules = enrollment.moduleProgress.filter(mp => mp.completed).length;
+      enrollment.progress = Math.round((completedModules / totalModules) * 100);
+    }
+
+    await enrollment.save();
+
+    if (enrollment.progress === 100 && !enrollment.completed) {
+      enrollment.completed = true;
+      enrollment.completedAt = new Date();
+      await enrollment.save();
+
+      try {
+        await NotificationHelpers.courseCompletion(req.user._id, course.title, course._id);
+      } catch (notificationError) {
+        console.error('⚠️ Notification error (non-critical):', notificationError.message);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Lesson progress updated",
+      enrollment,
+    });
+  } catch (error) {
+    console.error("Update lesson progress error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error: " + error.message,
+    });
+  }
+});
+
+// ==================== QUIZ ATTEMPT ====================
+router.post("/quiz-attempt/:quizId", authenticate, async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { answers } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid quiz ID",
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId);
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+    }
+
+    let correctAnswers = 0;
+    let totalQuestions = quiz.questions.length;
+
+    quiz.questions.forEach((question, index) => {
+      const userAnswer = answers[index];
+      let isCorrect = false;
+
+      if (question.type === 'single') {
+        const correctOption = question.options.find(opt => opt.isCorrect);
+        isCorrect = userAnswer === correctOption?.text;
+      } else if (question.type === 'multiple') {
+        const correctOptions = question.options.filter(opt => opt.isCorrect).map(opt => opt.text);
+        isCorrect = JSON.stringify(userAnswer?.sort()) === JSON.stringify(correctOptions.sort());
+      } else if (question.type === 'truefalse') {
+        isCorrect = userAnswer === question.options.find(opt => opt.isCorrect)?.text;
+      }
+
+      if (isCorrect) correctAnswers++;
+    });
+
+    const score = Math.round((correctAnswers / totalQuestions) * 100);
+    const passed = score >= quiz.passingScore;
+
+    const module = await Module.findById(quiz.moduleId);
+    const course = await Course.findById(module.courseId);
+    const enrollment = await Enrollment.findOne({
+      user: req.user._id,
+      course: course._id,
+    });
+
+    if (enrollment) {
+      const moduleProgress = enrollment.moduleProgress.find(
+        mp => mp.moduleId.toString() === module._id.toString()
+      );
+
+      if (moduleProgress) {
+        moduleProgress.quizAttempts.push({
+          attempt: moduleProgress.quizAttempts.length + 1,
+          score,
+          passed,
+          attemptedAt: new Date(),
+          answers: quiz.questions.map((q, index) => ({
+            questionId: q._id,
+            answer: answers[index],
+          })),
+        });
+
+        if (passed) {
+          moduleProgress.completed = true;
+          moduleProgress.completedAt = new Date();
+        }
+
+        await enrollment.save();
+
+        try {
+          await NotificationHelpers.quizResult(
+            req.user._id,
+            quiz.title,
+            score,
+            passed,
+            module._id
+          );
+        } catch (notificationError) {
+          console.error('⚠️ Notification error (non-critical):', notificationError.message);
+        }
+
+        if (passed) {
+          const allModules = await Module.find({ courseId: course._id });
+          const allCompleted = allModules.every(m => {
+            const mp = enrollment.moduleProgress.find(
+              p => p.moduleId.toString() === m._id.toString()
+            );
+            return mp?.completed;
+          });
+
+          if (allCompleted) {
+            try {
+              await NotificationHelpers.courseCompletion(
+                req.user._id,
+                course.title,
+                course._id
+              );
+            } catch (notificationError) {
+              console.error('⚠️ Notification error (non-critical):', notificationError.message);
+            }
+          }
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      score,
+      passed,
+      totalQuestions,
+      correctAnswers,
+      message: passed ? "Congratulations! You passed the quiz." : "You didn't pass. Please try again.",
+    });
+  } catch (error) {
+    console.error("Quiz attempt error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// ==================== GET CREATOR COURSES ====================
+router.get("/creator-courses", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    
+    if (!user.isCreator) {
+      return res.status(403).json({
+        success: false,
+        message: "Only creators can access this",
+      });
+    }
+
+    const courses = await Course.find({ instructor: req.user._id })
+      .populate('modules')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      courses,
+    });
+  } catch (error) {
+    console.error("Get creator courses error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// ==================== CREATE COURSE ====================
+router.post("/courses", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    
+    if (!user.isCreator) {
+      return res.status(403).json({
+        success: false,
+        message: "Only creators can create courses",
+      });
+    }
+
+    const {
+      title,
+      description,
+      shortDescription,
+      category,
+      subCategory,
+      level,
+      price,
+      discountPrice,
+      thumbnail,
+      learningOutcomes,
+      prerequisites,
+      targetAudience,
+      language,
+      tags,
+      whatYouWillLearn,
+      requirements,
+    } = req.body;
+
+    let thumbnailUrl = thumbnail;
+    if (thumbnail && thumbnail.startsWith('data:image')) {
+      const uploadResponse = await cloudinary.uploader.upload(thumbnail, {
+        folder: 'course_thumbnails',
+        width: 1200,
+        height: 630,
+        crop: 'limit',
+        quality: 'auto',
+      });
+      thumbnailUrl = uploadResponse.secure_url;
+    }
+
+    const course = new Course({
+      title,
+      description,
+      shortDescription,
+      category,
+      subCategory,
+      level,
+      price: price || 0,
+      discountPrice: discountPrice || 0,
+      thumbnail: thumbnailUrl,
+      instructor: req.user._id,
+      learningOutcomes: learningOutcomes || [],
+      prerequisites: prerequisites || [],
+      targetAudience: targetAudience || [],
+      language: language || 'English',
+      tags: tags || [],
+      whatYouWillLearn: whatYouWillLearn || [],
+      requirements: requirements || [],
+      isPaid: price > 0,
+      status: 'draft',
+      isPublished: false,
+    });
+
+    await course.save();
+
+    user.totalCourses = (user.totalCourses || 0) + 1;
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Course created successfully",
+      course,
+    });
+  } catch (error) {
+    console.error("Create course error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// ==================== UPDATE COURSE ====================
 router.put("/courses/:courseId", authenticate, async (req, res) => {
   try {
-    const course = await Course.findById(req.params.courseId);
+    const { courseId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
+
+    const course = await Course.findById(courseId);
     
     if (!course) {
       return res.status(404).json({
@@ -391,7 +833,6 @@ router.put("/courses/:courseId", authenticate, async (req, res) => {
 
     const updates = req.body;
     
-    // Handle thumbnail update
     if (updates.thumbnail && updates.thumbnail.startsWith('data:image')) {
       const uploadResponse = await cloudinary.uploader.upload(updates.thumbnail, {
         folder: 'course_thumbnails',
@@ -421,10 +862,19 @@ router.put("/courses/:courseId", authenticate, async (req, res) => {
   }
 });
 
-// Publish course
+// ==================== PUBLISH COURSE ====================
 router.put("/courses/:courseId/publish", authenticate, async (req, res) => {
   try {
-    const course = await Course.findById(req.params.courseId);
+    const { courseId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
+
+    const course = await Course.findById(courseId);
     
     if (!course) {
       return res.status(404).json({
@@ -440,7 +890,6 @@ router.put("/courses/:courseId/publish", authenticate, async (req, res) => {
       });
     }
 
-    // Check if course has at least one module and lesson
     const modules = await Module.find({ courseId: course._id });
     if (modules.length === 0) {
       return res.status(400).json({
@@ -470,6 +919,12 @@ router.put("/courses/:courseId/publish", authenticate, async (req, res) => {
     course.publishedAt = new Date();
     await course.save();
 
+    try {
+      await NotificationHelpers.coursePublished(req.user._id, course.title, course._id);
+    } catch (notificationError) {
+      console.error('⚠️ Notification error (non-critical):', notificationError.message);
+    }
+
     res.status(200).json({
       success: true,
       message: "Course published successfully",
@@ -484,10 +939,19 @@ router.put("/courses/:courseId/publish", authenticate, async (req, res) => {
   }
 });
 
-// Delete course
+// ==================== DELETE COURSE ====================
 router.delete("/courses/:courseId", authenticate, async (req, res) => {
   try {
-    const course = await Course.findById(req.params.courseId);
+    const { courseId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
+
+    const course = await Course.findById(courseId);
     
     if (!course) {
       return res.status(404).json({
@@ -503,7 +967,6 @@ router.delete("/courses/:courseId", authenticate, async (req, res) => {
       });
     }
 
-    // Delete all modules, lessons, quizzes, assignments
     const modules = await Module.find({ courseId: course._id });
     for (const module of modules) {
       await Lesson.deleteMany({ moduleId: module._id });
@@ -513,6 +976,10 @@ router.delete("/courses/:courseId", authenticate, async (req, res) => {
     }
 
     await course.deleteOne();
+
+    const user = await User.findById(req.user._id);
+    user.totalCourses = Math.max(0, (user.totalCourses || 0) - 1);
+    await user.save();
 
     res.status(200).json({
       success: true,
@@ -533,6 +1000,13 @@ router.delete("/courses/:courseId", authenticate, async (req, res) => {
 router.post("/modules", authenticate, async (req, res) => {
   try {
     const { courseId, title, description, order } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
 
     const course = await Course.findById(courseId);
     if (!course) {
@@ -558,7 +1032,6 @@ router.post("/modules", authenticate, async (req, res) => {
 
     await module.save();
 
-    // Add module to course
     course.modules.push(module._id);
     await course.save();
 
@@ -579,7 +1052,16 @@ router.post("/modules", authenticate, async (req, res) => {
 // Update module
 router.put("/modules/:moduleId", authenticate, async (req, res) => {
   try {
-    const module = await Module.findById(req.params.moduleId);
+    const { moduleId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid module ID",
+      });
+    }
+
+    const module = await Module.findById(moduleId);
     
     if (!module) {
       return res.status(404).json({
@@ -616,7 +1098,16 @@ router.put("/modules/:moduleId", authenticate, async (req, res) => {
 // Delete module
 router.delete("/modules/:moduleId", authenticate, async (req, res) => {
   try {
-    const module = await Module.findById(req.params.moduleId);
+    const { moduleId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid module ID",
+      });
+    }
+
+    const module = await Module.findById(moduleId);
     
     if (!module) {
       return res.status(404).json({
@@ -633,12 +1124,10 @@ router.delete("/modules/:moduleId", authenticate, async (req, res) => {
       });
     }
 
-    // Delete all lessons, quizzes, assignments in this module
     await Lesson.deleteMany({ moduleId: module._id });
     await Quiz.deleteMany({ moduleId: module._id });
     await Assignment.deleteMany({ moduleId: module._id });
 
-    // Remove module from course
     course.modules = course.modules.filter(m => m.toString() !== module._id.toString());
     await course.save();
 
@@ -673,6 +1162,13 @@ router.post("/lessons", authenticate, async (req, res) => {
       resources,
     } = req.body;
 
+    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid module ID",
+      });
+    }
+
     const module = await Module.findById(moduleId);
     if (!module) {
       return res.status(404).json({
@@ -689,7 +1185,6 @@ router.post("/lessons", authenticate, async (req, res) => {
       });
     }
 
-    // Handle video upload if present
     let videoUrl = content?.videoUrl || '';
     if (content?.videoUrl && content.videoUrl.startsWith('data:video')) {
       const uploadResponse = await cloudinary.uploader.upload(content.videoUrl, {
@@ -718,12 +1213,10 @@ router.post("/lessons", authenticate, async (req, res) => {
 
     await lesson.save();
 
-    // Add lesson to module
     module.lessons.push(lesson._id);
     await module.save();
 
-    // Update course total lessons
-    course.totalLessons += 1;
+    course.totalLessons = (course.totalLessons || 0) + 1;
     await course.save();
 
     res.status(201).json({
@@ -743,7 +1236,16 @@ router.post("/lessons", authenticate, async (req, res) => {
 // Update lesson
 router.put("/lessons/:lessonId", authenticate, async (req, res) => {
   try {
-    const lesson = await Lesson.findById(req.params.lessonId);
+    const { lessonId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lesson ID",
+      });
+    }
+
+    const lesson = await Lesson.findById(lessonId);
     
     if (!lesson) {
       return res.status(404).json({
@@ -764,7 +1266,6 @@ router.put("/lessons/:lessonId", authenticate, async (req, res) => {
 
     const updates = req.body;
     
-    // Handle video upload if present
     if (updates.content?.videoUrl && updates.content.videoUrl.startsWith('data:video')) {
       const uploadResponse = await cloudinary.uploader.upload(updates.content.videoUrl, {
         resource_type: 'video',
@@ -794,7 +1295,16 @@ router.put("/lessons/:lessonId", authenticate, async (req, res) => {
 // Delete lesson
 router.delete("/lessons/:lessonId", authenticate, async (req, res) => {
   try {
-    const lesson = await Lesson.findById(req.params.lessonId);
+    const { lessonId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lesson ID",
+      });
+    }
+
+    const lesson = await Lesson.findById(lessonId);
     
     if (!lesson) {
       return res.status(404).json({
@@ -813,12 +1323,10 @@ router.delete("/lessons/:lessonId", authenticate, async (req, res) => {
       });
     }
 
-    // Remove lesson from module
     module.lessons = module.lessons.filter(l => l.toString() !== lesson._id.toString());
     await module.save();
 
-    // Update course total lessons
-    course.totalLessons -= 1;
+    course.totalLessons = Math.max(0, (course.totalLessons || 0) - 1);
     await course.save();
 
     await lesson.deleteOne();
@@ -838,7 +1346,7 @@ router.delete("/lessons/:lessonId", authenticate, async (req, res) => {
 
 // ==================== QUIZ MANAGEMENT ====================
 
-// Create quiz for a module
+// Create quiz
 router.post("/quizzes", authenticate, async (req, res) => {
   try {
     const {
@@ -850,6 +1358,13 @@ router.post("/quizzes", authenticate, async (req, res) => {
       timeLimit,
       maxAttempts,
     } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid module ID",
+      });
+    }
 
     const module = await Module.findById(moduleId);
     if (!module) {
@@ -879,7 +1394,6 @@ router.post("/quizzes", authenticate, async (req, res) => {
 
     await quiz.save();
 
-    // Link quiz to module
     module.quiz = quiz._id;
     await module.save();
 
@@ -900,7 +1414,16 @@ router.post("/quizzes", authenticate, async (req, res) => {
 // Update quiz
 router.put("/quizzes/:quizId", authenticate, async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.quizId);
+    const { quizId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid quiz ID",
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId);
     
     if (!quiz) {
       return res.status(404).json({
@@ -939,7 +1462,16 @@ router.put("/quizzes/:quizId", authenticate, async (req, res) => {
 // Delete quiz
 router.delete("/quizzes/:quizId", authenticate, async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.quizId);
+    const { quizId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid quiz ID",
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId);
     
     if (!quiz) {
       return res.status(404).json({
@@ -958,7 +1490,6 @@ router.delete("/quizzes/:quizId", authenticate, async (req, res) => {
       });
     }
 
-    // Remove quiz from module
     module.quiz = undefined;
     await module.save();
 
@@ -977,70 +1508,28 @@ router.delete("/quizzes/:quizId", authenticate, async (req, res) => {
   }
 });
 
-// ==================== ENROLLMENT & PAYMENT ====================
-
-// Enroll in a course (free)
-router.post("/enroll/:courseId", authenticate, async (req, res) => {
+// ==================== GET ENROLLED COURSES ====================
+router.get("/my-courses", authenticate, async (req, res) => {
   try {
-    const course = await Course.findById(req.params.courseId);
-    
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found",
-      });
-    }
-
-    // Check if already enrolled
-    const existingEnrollment = await Enrollment.findOne({
+    const enrollments = await Enrollment.find({ 
       user: req.user._id,
-      course: course._id,
-    });
+      paymentStatus: { $in: ['free', 'completed'] }
+    })
+    .populate({
+      path: 'course',
+      populate: {
+        path: 'instructor',
+        select: 'name profilePicture'
+      }
+    })
+    .sort({ createdAt: -1 });
 
-    if (existingEnrollment) {
-      return res.status(400).json({
-        success: false,
-        message: "You are already enrolled in this course",
-      });
-    }
-
-    // For paid courses, redirect to payment
-    if (course.isPaid && course.price > 0) {
-      return res.status(200).json({
-        success: true,
-        requiresPayment: true,
-        courseId: course._id,
-        amount: course.price,
-        message: "This course requires payment. Please proceed to payment.",
-      });
-    }
-
-    // For free courses, enroll directly
-    const enrollment = new Enrollment({
-      user: req.user._id,
-      course: course._id,
-      paymentStatus: 'free',
-      amount: 0,
-      progress: 0,
-    });
-
-    await enrollment.save();
-
-    // Add student to course
-    course.students.push({
-      userId: req.user._id,
-      enrolledAt: new Date(),
-    });
-    course.enrollments += 1;
-    await course.save();
-
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      message: "Successfully enrolled in the course",
-      enrollment,
+      enrollments,
     });
   } catch (error) {
-    console.error("Enroll error:", error);
+    console.error("Get my courses error:", error);
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -1048,25 +1537,79 @@ router.post("/enroll/:courseId", authenticate, async (req, res) => {
   }
 });
 
-// Get course content for enrolled user
-router.get("/course-content/:courseId", authenticate, async (req, res) => {
+// ==================== GET COURSE STATISTICS (FOR CREATOR) ====================
+router.get("/course-stats/:courseId", authenticate, async (req, res) => {
   try {
-    const course = await Course.findById(req.params.courseId)
-      .populate({
-        path: 'modules',
-        populate: [
-          {
-            path: 'lessons',
-            populate: {
-              path: 'quiz',
-            },
-          },
-          {
-            path: 'quiz',
-          },
-        ],
-      });
+    const { courseId } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    if (course.instructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to view this course's statistics",
+      });
+    }
+
+    const totalStudents = course.students?.length || 0;
+    const completedStudents = course.students?.filter(s => s.completed).length || 0;
+    const completionRate = totalStudents > 0 ? Math.round((completedStudents / totalStudents) * 100) : 0;
+
+    const totalReviews = course.reviews?.length || 0;
+    const averageRating = totalReviews > 0 
+      ? course.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews 
+      : 0;
+
+    res.status(200).json({
+      success: true,
+      statistics: {
+        totalStudents,
+        completedStudents,
+        completionRate,
+        totalReviews,
+        averageRating: Math.round(averageRating * 10) / 10,
+        enrollments: course.enrollments || 0,
+        views: course.views || 0,
+        totalLessons: course.totalLessons || 0,
+        totalModules: course.modules?.length || 0,
+      }
+    });
+  } catch (error) {
+    console.error("Get course stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// ==================== ADD REVIEW TO COURSE ====================
+router.post("/courses/:courseId/review", authenticate, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { rating, comment } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
+
+    const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -1077,112 +1620,50 @@ router.get("/course-content/:courseId", authenticate, async (req, res) => {
     // Check if user is enrolled
     const enrollment = await Enrollment.findOne({
       user: req.user._id,
-      course: course._id,
+      course: courseId,
     });
 
     if (!enrollment) {
       return res.status(403).json({
         success: false,
-        message: "You need to enroll in this course to access the content",
+        message: "You must be enrolled in this course to leave a review",
       });
     }
 
-    res.status(200).json({
-      success: true,
-      course,
-      enrollment,
-    });
-  } catch (error) {
-    console.error("Get course content error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-});
+    // Check if user already reviewed
+    const existingReview = course.reviews.find(
+      r => r.userId.toString() === req.user._id.toString()
+    );
 
-// Submit quiz attempt
-router.post("/quiz-attempt/:quizId", authenticate, async (req, res) => {
-  try {
-    const { answers } = req.body;
-    const quiz = await Quiz.findById(req.params.quizId);
-
-    if (!quiz) {
-      return res.status(404).json({
+    if (existingReview) {
+      return res.status(400).json({
         success: false,
-        message: "Quiz not found",
+        message: "You have already reviewed this course",
       });
     }
 
-    // Calculate score
-    let correctAnswers = 0;
-    let totalQuestions = quiz.questions.length;
-
-    quiz.questions.forEach((question, index) => {
-      const userAnswer = answers[index];
-      let isCorrect = false;
-
-      if (question.type === 'single') {
-        const correctOption = question.options.find(opt => opt.isCorrect);
-        isCorrect = userAnswer === correctOption?.text;
-      } else if (question.type === 'multiple') {
-        const correctOptions = question.options.filter(opt => opt.isCorrect).map(opt => opt.text);
-        isCorrect = JSON.stringify(userAnswer.sort()) === JSON.stringify(correctOptions.sort());
-      } else if (question.type === 'truefalse') {
-        isCorrect = userAnswer === question.options.find(opt => opt.isCorrect)?.text;
-      }
-
-      if (isCorrect) correctAnswers++;
+    course.reviews.push({
+      userId: req.user._id,
+      rating: rating || 5,
+      comment: comment || '',
+      createdAt: new Date(),
     });
 
-    const score = Math.round((correctAnswers / totalQuestions) * 100);
-    const passed = score >= quiz.passingScore;
+    // Update course rating
+    const totalReviews = course.reviews.length;
+    const avgRating = course.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;
+    course.rating = Math.round(avgRating * 10) / 10;
 
-    // Find enrollment and update progress
-    const module = await Module.findById(quiz.moduleId);
-    const course = await Course.findById(module.courseId);
-    const enrollment = await Enrollment.findOne({
-      user: req.user._id,
-      course: course._id,
-    });
+    await course.save();
 
-    if (enrollment) {
-      // Update module progress
-      const moduleProgress = enrollment.moduleProgress.find(
-        mp => mp.moduleId.toString() === module._id.toString()
-      );
-
-      if (moduleProgress) {
-        moduleProgress.quizAttempts.push({
-          attempt: moduleProgress.quizAttempts.length + 1,
-          score,
-          passed,
-          attemptedAt: new Date(),
-          answers: quiz.questions.map((q, index) => ({
-            questionId: q._id,
-            answer: answers[index],
-          })),
-        });
-
-        if (passed) {
-          moduleProgress.completed = true;
-          moduleProgress.completedAt = new Date();
-        }
-
-        await enrollment.save();
-      }
-    }
-
-    res.status(200).json({
+    res.status(201).json({
       success: true,
-      score,
-      passed,
-      totalQuestions,
-      correctAnswers,
-      message: passed ? "Congratulations! You passed the quiz." : "You didn't pass. Please try again.",
+      message: "Review added successfully",
+      review: course.reviews[course.reviews.length - 1],
+      averageRating: course.rating,
     });
   } catch (error) {
-    console.error("Quiz attempt error:", error);
+    console.error("Add review error:", error);
     res.status(500).json({
       success: false,
       message: "Server error",

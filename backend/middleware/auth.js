@@ -2,19 +2,50 @@
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const User = require("../models/User");
+const TokenService = require("../services/tokenService");
 
 // General Authentication
 const authenticate = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
       return res.status(401).json({
         success: false,
         message: "No token provided",
+        code: "NO_TOKEN"
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token format",
+        code: "INVALID_TOKEN_FORMAT"
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = TokenService.verifyAccessToken(token);
+    } catch (error) {
+      if (error.message === 'ACCESS_TOKEN_EXPIRED') {
+        return res.status(401).json({
+          success: false,
+          message: "Access token expired",
+          code: "ACCESS_TOKEN_EXPIRED",
+          needsRefresh: true
+        });
+      }
+      if (error.message === 'INVALID_ACCESS_TOKEN') {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid access token",
+          code: "INVALID_ACCESS_TOKEN"
+        });
+      }
+      throw error;
+    }
     
     // Try to find user in User model first
     let user = await User.findById(decoded.userId);
@@ -28,6 +59,16 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: "User not found",
+        code: "USER_NOT_FOUND"
+      });
+    }
+
+    // Check if user is active
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "Account deactivated",
+        code: "ACCOUNT_DEACTIVATED"
       });
     }
 
@@ -38,7 +79,8 @@ const authenticate = async (req, res, next) => {
     console.error("Authentication error:", error);
     return res.status(401).json({
       success: false,
-      message: "Invalid token",
+      message: "Authentication failed",
+      code: "AUTH_FAILED"
     });
   }
 };
@@ -46,21 +88,50 @@ const authenticate = async (req, res, next) => {
 // Admin Authentication
 const isAdmin = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
       return res.status(401).json({
         success: false,
         message: "No token provided",
+        code: "NO_TOKEN"
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token format",
+        code: "INVALID_TOKEN_FORMAT"
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = TokenService.verifyAccessToken(token);
+    } catch (error) {
+      if (error.message === 'ACCESS_TOKEN_EXPIRED') {
+        return res.status(401).json({
+          success: false,
+          message: "Access token expired",
+          code: "ACCESS_TOKEN_EXPIRED",
+          needsRefresh: true
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token",
+        code: "INVALID_TOKEN"
+      });
+    }
+
     const admin = await Admin.findById(decoded.userId);
     
     if (!admin) {
       return res.status(403).json({
         success: false,
         message: "Access denied. Admin only.",
+        code: "ADMIN_ONLY"
       });
     }
 
@@ -68,6 +139,7 @@ const isAdmin = async (req, res, next) => {
       return res.status(403).json({
         success: false,
         message: "Admin account is deactivated",
+        code: "ADMIN_DEACTIVATED"
       });
     }
 
@@ -77,7 +149,8 @@ const isAdmin = async (req, res, next) => {
     console.error("Admin auth error:", error);
     return res.status(401).json({
       success: false,
-      message: "Invalid token",
+      message: "Authentication failed",
+      code: "AUTH_FAILED"
     });
   }
 };
@@ -91,9 +164,34 @@ const hasPermission = (permission) => {
       res.status(403).json({
         success: false,
         message: `Access denied. Requires ${permission} permission`,
+        code: "PERMISSION_DENIED"
       });
     }
   };
 };
 
-module.exports = { authenticate, isAdmin, hasPermission };
+// Optional authentication (doesn't fail if no token)
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      const token = authHeader.split(" ")[1];
+      if (token) {
+        try {
+          const decoded = TokenService.verifyAccessToken(token);
+          const user = await User.findById(decoded.userId);
+          if (user && user.isActive !== false) {
+            req.user = user;
+          }
+        } catch (error) {
+          // Ignore token errors for optional auth
+        }
+      }
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};
+
+module.exports = { authenticate, isAdmin, hasPermission, optionalAuth };

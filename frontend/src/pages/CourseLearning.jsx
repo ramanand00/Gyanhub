@@ -1,4 +1,4 @@
-// pages/CourseLearning.jsx
+// pages/CourseLearning.jsx - Updated version
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import API from '../services/api';
@@ -13,17 +13,19 @@ const CourseLearning = () => {
   const [loading, setLoading] = useState(true);
   const [selectedModule, setSelectedModule] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
-  const [quizAttempt, setQuizAttempt] = useState(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState([]);
   const [quizResult, setQuizResult] = useState(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [updatingProgress, setUpdatingProgress] = useState(false);
 
   useEffect(() => {
     fetchCourseContent();
   }, [courseId]);
 
   const fetchCourseContent = async () => {
+    setLoading(true);
     try {
       const res = await API.get(`/api/courses/course-content/${courseId}`);
       setCourse(res.data.course);
@@ -39,98 +41,157 @@ const CourseLearning = () => {
       }
     } catch (error) {
       setError('Failed to load course content');
+      console.error('Error fetching course content:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLessonComplete = async (lessonId) => {
+  const handleLessonComplete = async (lessonId, moduleId) => {
+    if (updatingProgress) return;
+    setUpdatingProgress(true);
+    setError('');
+    setSuccess('');
+
     try {
-      // Update lesson progress
-      const moduleProgress = enrollment.moduleProgress?.find(
-        mp => mp.moduleId === selectedModule._id
+      const response = await API.put(
+        `/api/courses/lesson-progress/${courseId}/${moduleId}/${lessonId}`,
+        { completed: true }
       );
-      
-      if (moduleProgress) {
-        const lessonProgress = moduleProgress.lessonProgress?.find(
-          lp => lp.lessonId === lessonId
-        );
+
+      if (response.data.success) {
+        setEnrollment(response.data.enrollment);
+        setSuccess('Lesson marked as complete!');
+        setTimeout(() => setSuccess(''), 3000);
         
-        if (lessonProgress) {
-          lessonProgress.completed = true;
-          lessonProgress.completedAt = new Date();
+        // Update local lesson completion status
+        if (selectedModule) {
+          const updatedModule = { ...selectedModule };
+          const lessonIndex = updatedModule.lessons?.findIndex(l => l._id === lessonId);
+          if (lessonIndex !== -1) {
+            updatedModule.lessons[lessonIndex].completed = true;
+          }
+          setSelectedModule(updatedModule);
+          
+          // Update module in course
+          const courseModules = course.modules.map(m => 
+            m._id === moduleId ? updatedModule : m
+          );
+          setCourse({ ...course, modules: courseModules });
         }
-        
-        // Check if all lessons in module are completed
-        const allLessonsCompleted = selectedModule.lessons.every(lesson => {
-          const progress = moduleProgress.lessonProgress?.find(lp => lp.lessonId === lesson._id);
-          return progress?.completed;
-        });
-        
-        if (allLessonsCompleted && !moduleProgress.completed) {
-          moduleProgress.completed = true;
-          moduleProgress.completedAt = new Date();
-        }
-        
-        await enrollment.save();
-        setEnrollment({ ...enrollment });
       }
     } catch (error) {
+      setError(error.response?.data?.message || 'Failed to mark lesson as complete');
       console.error('Error updating lesson progress:', error);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setUpdatingProgress(false);
     }
   };
 
   const handleQuizSubmit = async () => {
+    if (!selectedLesson?.quiz) return;
+    
+    setLoading(true);
+    setError('');
+
     try {
-      const res = await API.post(`/api/courses/quiz-attempt/${selectedLesson.quiz._id}`, {
-        answers: quizAnswers
-      });
-      
-      setQuizResult(res.data);
-      
-      if (res.data.passed) {
-        // Mark quiz as completed
-        await handleLessonComplete(selectedLesson._id);
+      const response = await API.post(
+        `/api/courses/quiz-attempt/${selectedLesson.quiz._id}`,
+        { answers: quizAnswers }
+      );
+
+      setQuizResult(response.data);
+
+      if (response.data.passed) {
+        setSuccess('🎉 Congratulations! You passed the quiz!');
+        // Mark lesson as complete
+        await handleLessonComplete(selectedLesson._id, selectedModule._id);
+      } else {
+        setError(`You scored ${response.data.score}%. You need ${selectedLesson.quiz.passingScore}% to pass. Please try again.`);
       }
     } catch (error) {
-      setError('Failed to submit quiz');
+      setError(error.response?.data?.message || 'Failed to submit quiz');
+      console.error('Error submitting quiz:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const renderLessonContent = () => {
-    if (!selectedLesson) return null;
+  // Helper to check if lesson is completed
+  const isLessonCompleted = (lessonId) => {
+    if (!enrollment?.moduleProgress) return false;
+    for (const mp of enrollment.moduleProgress) {
+      const lp = mp.lessonProgress?.find(p => p.lessonId === lessonId);
+      if (lp?.completed) return true;
+    }
+    return false;
+  };
 
-    // If it's a quiz lesson
-    if (selectedLesson.type === 'quiz' && selectedLesson.quiz) {
-      return renderQuiz();
+  // Helper to check if module is completed
+  const isModuleCompleted = (moduleId) => {
+    if (!enrollment?.moduleProgress) return false;
+    const mp = enrollment.moduleProgress.find(p => p.moduleId === moduleId);
+    return mp?.completed || false;
+  };
+
+  // Render lesson content
+  const renderLessonContent = () => {
+    if (!selectedLesson) {
+      return (
+        <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+          <div className="text-6xl mb-4">📚</div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Select a Lesson</h3>
+          <p className="text-gray-600">Choose a lesson from the sidebar to start learning.</p>
+        </div>
+      );
+    }
+
+    // If lesson has a quiz
+    if (selectedLesson.quiz) {
+      return renderQuizContent();
     }
 
     // Render video lesson
     if (selectedLesson.type === 'video') {
       return (
         <div className="space-y-4">
-          {selectedLesson.content.videoUrl && (
-            <div className="aspect-w-16 aspect-h-9 bg-black rounded-lg overflow-hidden">
-              <video
-                src={selectedLesson.content.videoUrl}
-                controls
-                className="w-full h-full"
-                onEnded={() => handleLessonComplete(selectedLesson._id)}
-              />
-            </div>
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            {selectedLesson.content?.videoUrl && (
+              <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                <video
+                  src={selectedLesson.content.videoUrl}
+                  controls
+                  className="w-full h-full"
+                  onEnded={() => {
+                    if (!isLessonCompleted(selectedLesson._id)) {
+                      handleLessonComplete(selectedLesson._id, selectedModule._id);
+                    }
+                  }}
+                />
+              </div>
+            )}
+            {selectedLesson.content?.notes && (
+              <div className="mt-4 bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-700 mb-2">📝 Notes</h4>
+                <div className="prose max-w-none">
+                  {selectedLesson.content.notes.split('\n').map((paragraph, idx) => (
+                    <p key={idx} className="text-gray-600">{paragraph}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {!isLessonCompleted(selectedLesson._id) && (
+            <button
+              onClick={() => handleLessonComplete(selectedLesson._id, selectedModule._id)}
+              disabled={updatingProgress}
+              className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-colors disabled:opacity-50"
+            >
+              {updatingProgress ? 'Marking...' : '✅ Mark as Complete'}
+            </button>
           )}
-          {selectedLesson.content.notes && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-700 mb-2">Notes</h4>
-              <p className="text-gray-600 whitespace-pre-line">{selectedLesson.content.notes}</p>
-            </div>
-          )}
-          <button
-            onClick={() => handleLessonComplete(selectedLesson._id)}
-            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-          >
-            Mark as Complete
-          </button>
         </div>
       );
     }
@@ -139,19 +200,23 @@ const CourseLearning = () => {
     if (selectedLesson.type === 'notes') {
       return (
         <div className="space-y-4">
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
+          <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="prose max-w-none">
-              {selectedLesson.content.notes.split('\n').map((paragraph, index) => (
-                <p key={index} className="text-gray-700">{paragraph}</p>
+              {selectedLesson.content?.notes?.split('\n').map((paragraph, idx) => (
+                <p key={idx} className="text-gray-700">{paragraph}</p>
               ))}
             </div>
           </div>
-          <button
-            onClick={() => handleLessonComplete(selectedLesson._id)}
-            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-          >
-            Mark as Complete
-          </button>
+          
+          {!isLessonCompleted(selectedLesson._id) && (
+            <button
+              onClick={() => handleLessonComplete(selectedLesson._id, selectedModule._id)}
+              disabled={updatingProgress}
+              className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-colors disabled:opacity-50"
+            >
+              {updatingProgress ? 'Marking...' : '✅ Mark as Complete'}
+            </button>
+          )}
         </div>
       );
     }
@@ -160,33 +225,42 @@ const CourseLearning = () => {
     if (selectedLesson.type === 'pdf') {
       return (
         <div className="space-y-4">
-          {selectedLesson.content.pdfUrl && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            {selectedLesson.content?.pdfUrl ? (
               <iframe
                 src={selectedLesson.content.pdfUrl}
                 className="w-full h-96 rounded-lg"
                 title="PDF Viewer"
               />
-            </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No PDF available</p>
+            )}
+          </div>
+          
+          {!isLessonCompleted(selectedLesson._id) && (
+            <button
+              onClick={() => handleLessonComplete(selectedLesson._id, selectedModule._id)}
+              disabled={updatingProgress}
+              className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-colors disabled:opacity-50"
+            >
+              {updatingProgress ? 'Marking...' : '✅ Mark as Complete'}
+            </button>
           )}
-          <button
-            onClick={() => handleLessonComplete(selectedLesson._id)}
-            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-          >
-            Mark as Complete
-          </button>
         </div>
       );
     }
 
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Lesson content not available</p>
+      <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+        <div className="text-4xl mb-4">📝</div>
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">{selectedLesson.title}</h3>
+        <p className="text-gray-600">Lesson content is being prepared.</p>
       </div>
     );
   };
 
-  const renderQuiz = () => {
+  // Render quiz content
+  const renderQuizContent = () => {
     const quiz = selectedLesson.quiz;
     
     if (quizResult) {
@@ -303,9 +377,10 @@ const CourseLearning = () => {
           
           <button
             type="submit"
-            className="w-full mt-6 px-6 py-3 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition-colors"
+            disabled={loading}
+            className="w-full mt-6 px-6 py-3 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition-colors disabled:opacity-50"
           >
-            Submit Quiz
+            {loading ? 'Submitting...' : 'Submit Quiz'}
           </button>
         </form>
       </div>
@@ -323,7 +398,7 @@ const CourseLearning = () => {
     );
   }
 
-  if (error || !course) {
+  if (error && !course) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -348,7 +423,7 @@ const CourseLearning = () => {
               <Link to={`/course/${courseId}`} className="text-gray-500 hover:text-gray-700">
                 ← Back
               </Link>
-              <h1 className="text-lg font-semibold text-gray-800 truncate">{course.title}</h1>
+              <h1 className="text-lg font-semibold text-gray-800 truncate">{course?.title}</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-500">
@@ -365,6 +440,22 @@ const CourseLearning = () => {
         </div>
       </div>
 
+      {/* Messages */}
+      {success && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+          <div className="bg-green-50 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded-lg">
+            {success}
+          </div>
+        </div>
+      )}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar - Modules */}
@@ -372,7 +463,7 @@ const CourseLearning = () => {
             <div className="bg-white rounded-xl shadow-lg p-4 sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto">
               <h3 className="font-semibold text-gray-800 mb-4">Course Content</h3>
               
-              {course.modules.map((module, index) => (
+              {course?.modules?.map((module, index) => (
                 <div key={module._id} className="mb-3">
                   <button
                     onClick={() => {
@@ -393,6 +484,9 @@ const CourseLearning = () => {
                       <span className="font-medium text-gray-800 text-sm">
                         Module {index + 1}
                       </span>
+                      {isModuleCompleted(module._id) && (
+                        <span className="text-green-500">✅</span>
+                      )}
                       {module.quiz && (
                         <span className="text-xs text-purple-500">📝</span>
                       )}
@@ -421,13 +515,10 @@ const CourseLearning = () => {
                             {lesson.type === 'notes' && '📝'}
                             {lesson.type === 'pdf' && '📄'}
                             {lesson.type === 'quiz' && '📝'}
-                            {lesson.type === 'assignment' && '📋'}
                           </span>
                           <span className="truncate">{lesson.title}</span>
-                          {lesson._id && (
-                            <span className="ml-auto text-xs">
-                              {lesson.completed ? '✅' : '⬜'}
-                            </span>
+                          {isLessonCompleted(lesson._id) && (
+                            <span className="ml-auto text-green-500">✅</span>
                           )}
                         </button>
                       ))}
@@ -446,6 +537,11 @@ const CourseLearning = () => {
                   <h2 className="text-2xl font-bold text-gray-800 mb-2">{selectedLesson.title}</h2>
                   {selectedLesson.description && (
                     <p className="text-gray-600">{selectedLesson.description}</p>
+                  )}
+                  {isLessonCompleted(selectedLesson._id) && (
+                    <span className="inline-block mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                      ✅ Completed
+                    </span>
                   )}
                 </div>
                 

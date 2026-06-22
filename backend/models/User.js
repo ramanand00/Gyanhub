@@ -34,6 +34,13 @@ const userSchema = new mongoose.Schema(
     resetPasswordExpires: {
       type: Date,
     },
+    // Refresh Token
+    refreshToken: {
+      type: String,
+    },
+    refreshTokenExpires: {
+      type: Date,
+    },
     // Role and Creator fields
     role: {
       type: String,
@@ -53,23 +60,10 @@ const userSchema = new mongoose.Schema(
       requestedAt: Date,
       reviewedAt: Date,
       notes: String,
-      // These fields store the user's form data
-      expertise: {
-        type: String,
-        default: '',
-      },
-      experience: {
-        type: String,
-        default: '',
-      },
-      reason: {
-        type: String,
-        default: '',
-      },
-      portfolio: {
-        type: String,
-        default: '',
-      },
+      expertise: String,
+      experience: String,
+      reason: String,
+      portfolio: String,
     },
     // Profile fields
     profilePicture: {
@@ -126,6 +120,18 @@ const userSchema = new mongoose.Schema(
     totalReviews: {
       type: Number,
       default: 0,
+    },
+    // Session Management
+    lastLogin: {
+      type: Date,
+    },
+    loginCount: {
+      type: Number,
+      default: 0,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   {
