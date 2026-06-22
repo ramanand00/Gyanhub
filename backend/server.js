@@ -1,3 +1,4 @@
+// server.js
 require("dotenv").config();
 
 const express = require("express");
@@ -53,12 +54,17 @@ app.use("/api/auth", require("./routes/AuthRoutes"));
 app.use("/api/admin/auth", require("./routes/AdminAuthRoutes"));
 app.use("/api/admin", require("./routes/AdminRoutes"));
 
+// Test routes (remove in production)
+if (process.env.NODE_ENV !== 'production') {
+  app.use("/api/test", require("./routes/TestRoutes"));
+}
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     success: false,
-    message: "Something went wrong!",
+    message: process.env.NODE_ENV === 'production' ? "Something went wrong!" : err.message,
   });
 });
 
@@ -68,6 +74,7 @@ if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📧 Email mode: ${process.env.ENABLE_EMAIL === 'true' ? 'REAL EMAILS' : 'CONSOLE LOG'}`);
+    console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 }
 

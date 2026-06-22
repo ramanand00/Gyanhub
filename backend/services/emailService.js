@@ -1,46 +1,54 @@
 // services/emailService.js
 const nodemailer = require('nodemailer');
 
-// Force send real emails by checking environment variables
-const shouldSendRealEmails = process.env.ENABLE_EMAIL === 'true' || process.env.NODE_ENV === 'production';
+// Check both possible variable names
+const emailUser = process.env.EMAIL_USER || process.env.EMAIL;
+const emailPass = process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+
+// Check if we should send real emails
+const shouldSendRealEmails = process.env.ENABLE_EMAIL === 'true' || process.env.SEND_REAL_EMAILS === 'true';
 
 console.log(`📧 Email mode: ${shouldSendRealEmails ? 'REAL EMAILS' : 'CONSOLE LOG (Development)'}`);
+console.log(`📧 Email User: ${emailUser ? '✅ Set' : '❌ Not set'}`);
+console.log(`📧 Email Password: ${emailPass ? '✅ Set' : '❌ Not set'}`);
 
 let transporter;
 
 if (shouldSendRealEmails) {
   // Validate environment variables
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+  if (!emailUser || !emailPass) {
     console.error('❌ EMAIL_USER or EMAIL_PASSWORD is missing in .env file!');
+    console.error('📧 Please add these to your .env file:');
+    console.error('   EMAIL_USER=your_email@gmail.com');
+    console.error('   EMAIL_PASSWORD=your_app_password');
     console.error('📧 Falling back to console logging mode.');
   } else {
     try {
       console.log('📧 Configuring Gmail transporter...');
-      console.log(`📧 Email User: ${process.env.EMAIL_USER}`);
-      console.log(`📧 Password length: ${process.env.EMAIL_PASSWORD.length} characters`);
+      console.log(`📧 Email User: ${emailUser}`);
       
       transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD,
+          user: emailUser,
+          pass: emailPass,
         },
-        // Add timeout and debug options
         connectionTimeout: 10000,
         greetingTimeout: 10000,
         socketTimeout: 10000,
       });
 
-      // Verify connection immediately
+      // Verify connection
       transporter.verify((error, success) => {
         if (error) {
           console.error('❌ Email transporter verification failed:', error.message);
           console.error('📧 Please check your email credentials and app password.');
-          console.error('📧 Falling back to console logging mode.');
-          transporter = null; // Disable transporter on failure
+          console.error('📧 Make sure you are using an App Password, not your regular Gmail password.');
+          console.error('📧 How to get App Password: https://support.google.com/accounts/answer/185833');
+          transporter = null;
         } else {
           console.log('✅ Email transporter verified successfully!');
-          console.log('✅ Ready to send real emails to:', process.env.EMAIL_USER);
+          console.log('✅ Ready to send real emails from:', emailUser);
         }
       });
     } catch (error) {
@@ -52,20 +60,26 @@ if (shouldSendRealEmails) {
 
 const sendOTPEmail = async (email, otp, name) => {
   console.log(`📧 Attempting to send OTP to: ${email}`);
+  console.log(`📧 Transporter status: ${transporter ? '✅ Ready' : '❌ Not configured'}`);
   
-  // If we're not sending real emails or transporter failed, log to console
+  // If not sending real emails or transporter failed, log to console
   if (!shouldSendRealEmails || !transporter) {
     console.log('📧 ===== EMAIL OTP (Development Mode - No Email Sent) =====');
     console.log(`📧 To: ${email}`);
     console.log(`📧 OTP: ${otp}`);
     console.log(`📧 Name: ${name}`);
     console.log('📧 =================================================');
+    console.log('💡 To send real emails:');
+    console.log('   1. Set ENABLE_EMAIL=true in .env');
+    console.log('   2. Set EMAIL_USER=your_email@gmail.com');
+    console.log('   3. Set EMAIL_PASSWORD=your_app_password');
+    console.log('   4. Restart the server');
     return;
   }
 
   try {
     const mailOptions = {
-      from: `"GyanPark" <${process.env.EMAIL_USER}>`,
+      from: `"GyanPark" <${emailUser}>`,
       to: email,
       subject: 'GyanPark - Email Verification OTP',
       html: `
@@ -122,7 +136,6 @@ const sendOTPEmail = async (email, otp, name) => {
     console.log('📧 ======================================');
     
     // Don't throw error - let the user continue with the OTP from console
-    // This way you can still test the full flow
     return;
   }
 };
