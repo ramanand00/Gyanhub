@@ -12,18 +12,27 @@ import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Settings from './pages/Settings';
-
+import Courses from './pages/Courses';
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
 import Dashboard from './pages/admin/Dashboard';
 import Users from './pages/admin/Users';
-import Courses from './pages/admin/Courses';
+import AdminCourses from './pages/admin/AdminCourses';
 import Enrollments from './pages/admin/Enrollments';
 import Admins from './pages/admin/Admins';
+import CreatorRequests from './pages/admin/CreatorRequests';
 
 // Components
 import Navbar from './components/Navbar';
 import NotFound from './components/NotFound';
+import CreatorRequest from './components/CreatorRequest';
+import CreateCourse from './pages/CreateCourse';
+import CourseBuilder from './pages/CourseBuilder';
+import MyCourses from './pages/MyCourses';
+import CourseDetails from './pages/CourseDetails';
+import CourseLearning from './pages/CourseLearning';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentFailure from './pages/PaymentFailure';
 
 // Loading Component
 const LoadingSpinner = () => (
@@ -190,7 +199,7 @@ function AppContent() {
             </AdminPublicRoute>
           } 
         />
-        
+        <Route path="/admin/creator-requests" element={<CreatorRequests />} />
         {/* Protected Admin Routes */}
         <Route
           path="/admin/dashboard"
@@ -212,7 +221,7 @@ function AppContent() {
           path="/admin/courses"
           element={
             <AdminProtectedRoute>
-              <Courses />
+              <AdminCourses />
             </AdminProtectedRoute>
           }
         />
@@ -232,7 +241,14 @@ function AppContent() {
             </AdminProtectedRoute>
           }
         />
-        
+        <Route path="/courses" element={<Courses />} />
+        <Route path="/create-course" element={<CreateCourse />} />
+<Route path="/course-builder/:courseId" element={<CourseBuilder />} />
+<Route path="/my-courses" element={<MyCourses />} />
+<Route path="/course/:courseId" element={<CourseDetails />} />
+<Route path="/course/:courseId/learn" element={<CourseLearning />} />
+<Route path="/payment/success" element={<PaymentSuccess />} />
+<Route path="/payment/failure" element={<PaymentFailure />} />
 <Route path="/forgot-password" element={<ForgotPassword />} />
 <Route path="/reset-password/:token" element={<ResetPassword />} />
 <Route path="/settings" element={<Settings />} />

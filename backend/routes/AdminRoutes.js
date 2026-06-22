@@ -1,7 +1,7 @@
 // routes/AdminRoutes.js
 const express = require("express");
 const router = express.Router();
-const bcrypt = require("bcryptjs"); // ← ADD THIS IMPORT
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Course = require("../models/Course");
 const Enrollment = require("../models/Enrollment");
@@ -11,7 +11,7 @@ const { isAdmin, hasPermission } = require("../middleware/auth");
 // =============== DASHBOARD STATS ===============
 router.get("/dashboard/stats", isAdmin, hasPermission("viewAnalytics"), async (req, res) => {
   try {
-    const [totalUsers, totalCourses, totalEnrollments, revenue] = await Promise.all([
+    const [totalUsers, totalCourses, totalEnrollments, revenue, pendingCreators] = await Promise.all([
       User.countDocuments({ isVerified: true }),
       Course.countDocuments({ status: "published" }),
       Enrollment.countDocuments(),
@@ -19,6 +19,7 @@ router.get("/dashboard/stats", isAdmin, hasPermission("viewAnalytics"), async (r
         { $match: { paymentStatus: "completed" } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
+      User.countDocuments({ 'creatorRequest.status': 'pending' }),
     ]);
 
     // Get monthly registration stats
@@ -58,6 +59,7 @@ router.get("/dashboard/stats", isAdmin, hasPermission("viewAnalytics"), async (r
         totalCourses,
         totalEnrollments,
         totalRevenue: revenue[0]?.total || 0,
+        pendingCreators,
         monthlyRegistrations,
         recentUsers,
         recentEnrollments,
@@ -65,6 +67,136 @@ router.get("/dashboard/stats", isAdmin, hasPermission("viewAnalytics"), async (r
     });
   } catch (error) {
     console.error("Dashboard stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// =============== CREATOR MANAGEMENT ===============
+
+// Get all creator requests (pending)
+// routes/AdminRoutes.js - Update the creator requests route
+// Get all creator requests (pending)
+router.get("/admin/creator-requests", isAdmin, hasPermission("manageUsers"), async (req, res) => {
+  try {
+    const users = await User.find({
+      'creatorRequest.status': 'pending'
+    }).select('name email profilePicture bio creatorRequest createdAt');
+
+    // Log the data to see what's being sent
+    console.log('📋 Pending creator requests found:', users.length);
+    users.forEach(user => {
+      console.log(`👤 ${user.name} (${user.email})`);
+      console.log(`   Expertise: ${user.creatorRequest?.expertise || 'Not provided'}`);
+      console.log(`   Experience: ${user.creatorRequest?.experience || 'Not provided'}`);
+      console.log(`   Reason: ${user.creatorRequest?.reason || 'Not provided'}`);
+      console.log(`   Portfolio: ${user.creatorRequest?.portfolio || 'Not provided'}`);
+    });
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    console.error("Get creator requests error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// Get all creators
+router.get("/admin/creators", isAdmin, hasPermission("manageUsers"), async (req, res) => {
+  try {
+    const users = await User.find({
+      isCreator: true
+    }).select('name email profilePicture bio totalCourses totalStudents creatorRating createdAt');
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    console.error("Get creators error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// Approve creator request
+router.put("/admin/approve-creator/:userId", isAdmin, hasPermission("manageUsers"), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if already a creator
+    if (user.isCreator) {
+      return res.status(400).json({
+        success: false,
+        message: "User is already a creator",
+      });
+    }
+
+    user.isCreator = true;
+    user.role = 'creator';
+    user.creatorRequest.status = 'approved';
+    user.creatorRequest.reviewedAt = new Date();
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Creator request approved successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isCreator: user.isCreator,
+      },
+    });
+  } catch (error) {
+    console.error("Approve creator error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// Reject creator request
+router.put("/admin/reject-creator/:userId", isAdmin, hasPermission("manageUsers"), async (req, res) => {
+  try {
+    const { notes } = req.body;
+    const user = await User.findById(req.params.userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    user.creatorRequest.status = 'rejected';
+    user.creatorRequest.reviewedAt = new Date();
+    user.creatorRequest.notes = notes || '';
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Creator request rejected",
+    });
+  } catch (error) {
+    console.error("Reject creator error:", error);
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -91,6 +223,8 @@ router.get("/users", isAdmin, hasPermission("manageUsers"), async (req, res) => 
       query.isVerified = true;
     } else if (filter === "unverified") {
       query.isVerified = false;
+    } else if (filter === "creators") {
+      query.isCreator = true;
     }
 
     const users = await User.find(query)
@@ -443,6 +577,39 @@ router.post("/admins", isAdmin, hasPermission("manageAdmins"), async (req, res) 
     });
   } catch (error) {
     console.error("Create admin error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// routes/AdminRoutes.js - Update reject route
+router.put("/admin/reject-creator/:userId", isAdmin, hasPermission("manageUsers"), async (req, res) => {
+  try {
+    const { notes } = req.body;
+    const user = await User.findById(req.params.userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Preserve the user's submitted data but update status
+    user.creatorRequest.status = 'rejected';
+    user.creatorRequest.reviewedAt = new Date();
+    user.creatorRequest.notes = notes || '';
+    // Keep the expertise, experience, reason, portfolio data
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Creator request rejected",
+    });
+  } catch (error) {
+    console.error("Reject creator error:", error);
     res.status(500).json({
       success: false,
       message: "Server error",

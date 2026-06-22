@@ -57,6 +57,10 @@ app.use("/api/settings", require("./routes/SettingsRoutes"));
 app.use("/api/admin/auth", require("./routes/AdminAuthRoutes"));
 app.use("/api/admin", require("./routes/AdminRoutes"));
 
+app.use("/api/user", require("./routes/UserRoutes"));
+app.use("/api/courses", require("./routes/CourseRoutes"));
+app.use("/api/payment", require("./routes/PaymentRoutes"));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

@@ -1,13 +1,17 @@
+// pages/admin/Dashboard.jsx
 import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import API from '../../services/api';
+import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingRequests, setPendingRequests] = useState([]);
 
   useEffect(() => {
     fetchStats();
+    fetchPendingRequests();
   }, []);
 
   const fetchStats = async () => {
@@ -18,6 +22,15 @@ const Dashboard = () => {
       console.error('Failed to fetch stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingRequests = async () => {
+    try {
+      const res = await API.get('/api/admin/admin/creator-requests');
+      setPendingRequests(res.data.users);
+    } catch (error) {
+      console.error('Failed to fetch pending requests:', error);
     }
   };
 
@@ -35,7 +48,7 @@ const Dashboard = () => {
     { label: 'Total Users', value: stats?.totalUsers || 0, icon: '👥', color: 'from-blue-500 to-blue-600' },
     { label: 'Total Courses', value: stats?.totalCourses || 0, icon: '📚', color: 'from-green-500 to-green-600' },
     { label: 'Total Enrollments', value: stats?.totalEnrollments || 0, icon: '📝', color: 'from-purple-500 to-purple-600' },
-    { label: 'Total Revenue', value: `$${stats?.totalRevenue || 0}`, icon: '💰', color: 'from-orange-500 to-red-600' },
+    { label: 'Total Revenue', value: `Rs. ${stats?.totalRevenue || 0}`, icon: '💰', color: 'from-orange-500 to-red-600' },
   ];
 
   return (
@@ -65,6 +78,31 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
+
+        {/* Pending Creator Requests Alert */}
+        {stats?.pendingCreators > 0 && (
+          <div className="bg-yellow-900/30 border-2 border-yellow-600 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center animate-pulse">
+                  <span className="text-xl">🎓</span>
+                </div>
+                <div>
+                  <h3 className="text-yellow-400 font-semibold">Pending Creator Requests</h3>
+                  <p className="text-yellow-300/80 text-sm">
+                    {stats.pendingCreators} creator{stats.pendingCreators > 1 ? 's' : ''} waiting for approval
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/admin/creator-requests"
+                className="px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors"
+              >
+                View Requests →
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Recent Users */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,3 +1,4 @@
+// models/Course.js
 const mongoose = require("mongoose");
 
 const courseSchema = new mongoose.Schema(
@@ -5,25 +6,32 @@ const courseSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
+      trim: true,
     },
     description: {
+      type: String,
+      required: true,
+    },
+    shortDescription: {
+      type: String,
+      maxlength: 200,
+    },
+    thumbnail: {
       type: String,
       required: true,
     },
     category: {
       type: String,
       required: true,
-      enum: ["Development", "Design", "Business", "Marketing", "Data Science", "AI/ML", "Cloud", "DevOps"],
+      enum: ["Development", "Design", "Business", "Marketing", "Data Science", "AI/ML", "Cloud", "DevOps", "Other"],
+    },
+    subCategory: {
+      type: String,
     },
     level: {
       type: String,
       enum: ["Beginner", "Intermediate", "Advanced", "All Levels"],
       default: "Beginner",
-    },
-    instructor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
     },
     price: {
       type: Number,
@@ -32,21 +40,30 @@ const courseSchema = new mongoose.Schema(
     discountPrice: {
       type: Number,
     },
-    thumbnail: {
-      type: String,
+    instructor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
-    videoUrl: {
+    learningOutcomes: [String],
+    prerequisites: [String],
+    targetAudience: [String],
+    language: {
       type: String,
+      default: 'English',
     },
     duration: {
       type: Number,
-      default: 0,
+      default: 0, // in minutes
     },
-    lectures: {
+    totalLessons: {
       type: Number,
       default: 0,
     },
+    modules: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Module',
+    }],
     students: [
       {
         userId: {
@@ -65,20 +82,24 @@ const courseSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
+        completedAt: Date,
+        certificateUrl: String,
       },
     ],
     status: {
       type: String,
-      enum: ["draft", "published", "archived"],
+      enum: ["draft", "published", "archived", "pending"],
       default: "draft",
     },
     isFeatured: {
       type: Boolean,
       default: false,
     },
-    tags: [String],
-    prerequisites: [String],
-    whatYouWillLearn: [String],
+    isPublished: {
+      type: Boolean,
+      default: false,
+    },
+    publishedAt: Date,
     rating: {
       type: Number,
       default: 0,
@@ -101,10 +122,38 @@ const courseSchema = new mongoose.Schema(
         },
       },
     ],
+    tags: [String],
+    whatYouWillLearn: [String],
+    requirements: [String],
+    // Payment related
+    isPaid: {
+      type: Boolean,
+      default: false,
+    },
+    currency: {
+      type: String,
+      default: 'NPR',
+    },
+    // Analytics
+    views: {
+      type: Number,
+      default: 0,
+    },
+    enrollments: {
+      type: Number,
+      default: 0,
+    },
+    completionRate: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+// Index for search
+courseSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 module.exports = mongoose.model("Course", courseSchema);

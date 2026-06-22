@@ -34,7 +34,44 @@ const userSchema = new mongoose.Schema(
     resetPasswordExpires: {
       type: Date,
     },
-    // New profile fields
+    // Role and Creator fields
+    role: {
+      type: String,
+      enum: ['user', 'creator', 'admin'],
+      default: 'user',
+    },
+    isCreator: {
+      type: Boolean,
+      default: false,
+    },
+    creatorRequest: {
+      status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: null,
+      },
+      requestedAt: Date,
+      reviewedAt: Date,
+      notes: String,
+      // These fields store the user's form data
+      expertise: {
+        type: String,
+        default: '',
+      },
+      experience: {
+        type: String,
+        default: '',
+      },
+      reason: {
+        type: String,
+        default: '',
+      },
+      portfolio: {
+        type: String,
+        default: '',
+      },
+    },
+    // Profile fields
     profilePicture: {
       type: String,
       default: null,
@@ -73,6 +110,23 @@ const userSchema = new mongoose.Schema(
     },
     skills: [String],
     interests: [String],
+    // Creator stats
+    totalStudents: {
+      type: Number,
+      default: 0,
+    },
+    totalCourses: {
+      type: Number,
+      default: 0,
+    },
+    creatorRating: {
+      type: Number,
+      default: 0,
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

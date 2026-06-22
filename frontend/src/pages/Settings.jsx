@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../services/api';
+import CreatorRequest from '../components/CreatorRequest'; // Add this import
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -124,6 +125,7 @@ const Settings = () => {
   const sections = [
     { id: 'account', label: 'Account Information', icon: '👤' },
     { id: 'password', label: 'Password & Security', icon: '🔒' },
+    { id: 'creator', label: 'Creator Status', icon: '🎓' }, // Add creator section
     { id: 'feedback', label: 'Give Feedback', icon: '💬' },
     { id: 'help', label: 'Help & Support', icon: '❓' },
     { id: 'legal', label: 'Legal & Policies', icon: '📜' },
@@ -306,6 +308,14 @@ const Settings = () => {
                       {loading ? 'Updating Password...' : 'Update Password'}
                     </button>
                   </form>
+                </div>
+              )}
+
+              {/* Creator Status */}
+              {activeSection === 'creator' && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-6">Creator Status</h2>
+                  <CreatorRequest />
                 </div>
               )}
 
