@@ -38,8 +38,9 @@ app.use(
   })
 );
 
-// Middleware
-app.use(express.json());
+// Increase payload limit for profile pictures
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.get("/", (req, res) => {
@@ -49,21 +50,25 @@ app.get("/", (req, res) => {
 // User Routes
 app.use("/api/Health", require("./routes/HealthRoutes"));
 app.use("/api/auth", require("./routes/AuthRoutes"));
-
-app.use("/api/password", require("./routes/PasswordResetRoutes")); 
+app.use("/api/password", require("./routes/PasswordResetRoutes"));
 app.use("/api/settings", require("./routes/SettingsRoutes"));
+
 // Admin Routes
 app.use("/api/admin/auth", require("./routes/AdminAuthRoutes"));
 app.use("/api/admin", require("./routes/AdminRoutes"));
 
-// Test routes (remove in production)
-if (process.env.NODE_ENV !== 'production') {
-  app.use("/api/test", require("./routes/TestRoutes"));
-}
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
+  
+  // Handle payload too large error
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({
+      success: false,
+      message: "File too large. Please upload a smaller image.",
+    });
+  }
+  
   res.status(500).json({
     success: false,
     message: process.env.NODE_ENV === 'production' ? "Something went wrong!" : err.message,
