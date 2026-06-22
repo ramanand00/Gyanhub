@@ -13,6 +13,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Settings from './pages/Settings';
 import Courses from './pages/Courses';
+import Notifications from './pages/Notifications';
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
 import Dashboard from './pages/admin/Dashboard';
@@ -187,6 +188,8 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+
         
         {/* ===== ADMIN ROUTES ===== */}
         

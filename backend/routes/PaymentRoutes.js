@@ -7,6 +7,7 @@ const Course = require("../models/Course");
 const Enrollment = require("../models/Enrollment");
 const User = require("../models/User");
 const { authenticate } = require("../middleware/auth");
+const NotificationHelpers = require("../utils/notificationHelpers");
 
 // eSewa Payment
 router.post("/esewa/initiate", authenticate, async (req, res) => {
@@ -240,6 +241,61 @@ router.post("/khalti/verify", authenticate, async (req, res) => {
     });
   }
 });
+
+
+
+// eSewa Payment Success
+router.post("/esewa/success", async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    const verificationResponse = await axios.post(
+      'https://rc-epay.esewa.com.np/api/epay/main/v2/form/status',
+      {
+        product_code: process.env.ESEWA_PRODUCT_CODE || 'EPAYTEST',
+        total_amount: data.total_amount,
+        transaction_uuid: data.transaction_uuid,
+      }
+    );
+
+    if (verificationResponse.data.status === 'complete') {
+      const enrollment = await Enrollment.findOne({
+        transactionId: data.transaction_uuid,
+      });
+
+      if (enrollment) {
+        enrollment.paymentStatus = 'completed';
+        await enrollment.save();
+
+        const course = await Course.findById(enrollment.course);
+        if (course) {
+          course.students.push({
+            userId: enrollment.user,
+            enrolledAt: new Date(),
+          });
+          course.enrollments += 1;
+          await course.save();
+
+          // Send payment success notification
+          await NotificationHelpers.paymentSuccess(
+            enrollment.user,
+            course.title,
+            enrollment.amount,
+            course._id
+          );
+        }
+
+        return res.redirect(`${process.env.CLIENT_URL}/course/${enrollment.course}/learn`);
+      }
+    }
+
+    res.redirect(`${process.env.CLIENT_URL}/payment/failure`);
+  } catch (error) {
+    console.error("eSewa success error:", error);
+    res.redirect(`${process.env.CLIENT_URL}/payment/failure`);
+  }
+});
+
 
 // Payment failure
 router.get("/payment/failure", (req, res) => {

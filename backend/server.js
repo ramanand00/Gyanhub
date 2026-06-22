@@ -4,6 +4,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
+const notificationRoutes = require("./routes/NotificationRoutes");
+
 
 const app = express();
 
@@ -60,6 +62,8 @@ app.use("/api/admin", require("./routes/AdminRoutes"));
 app.use("/api/user", require("./routes/UserRoutes"));
 app.use("/api/courses", require("./routes/CourseRoutes"));
 app.use("/api/payment", require("./routes/PaymentRoutes"));
+app.use("/api/notifications", notificationRoutes.router);
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {

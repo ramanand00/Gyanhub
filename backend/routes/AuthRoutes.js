@@ -6,6 +6,9 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { generateOTP, generateOTPExpiry } = require("../services/otpService");
 const { sendOTPEmail } = require("../services/emailService");
+const NotificationHelpers = require("../utils/notificationHelpers");
+
+
 
 // Register - Step 1: Send OTP
 router.post("/register", async (req, res) => {
@@ -77,6 +80,146 @@ router.post("/register", async (req, res) => {
     });
   }
 });
+
+// routes/AuthRoutes.js
+router.post("/register", async (req, res) => {
+  try {
+    const { name, email, password, mobileNumber } = req.body;
+
+    // Check if user already exists
+    let user = await User.findOne({ email });
+    if (user) {
+      if (user.isVerified) {
+        return res.status(400).json({
+          success: false,
+          message: "User already exists. Please login.",
+        });
+      } else {
+        // Update existing unverified user
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const otp = generateOTP();
+        user.name = name;
+        user.password = hashedPassword;
+        user.mobileNumber = mobileNumber;
+        user.otp = {
+          code: otp,
+          expiresAt: generateOTPExpiry(),
+        };
+        await user.save();
+        
+        // Send OTP email
+        await sendOTPEmail(email, otp, name);
+        
+        return res.status(200).json({
+          success: true,
+          message: "OTP sent to your email. Please verify.",
+          email: email,
+        });
+      }
+    }
+
+    // Create new user
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const otp = generateOTP();
+
+    user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      mobileNumber,
+      otp: {
+        code: otp,
+        expiresAt: generateOTPExpiry(),
+      },
+    });
+
+    await user.save();
+
+    // Send OTP email
+    await sendOTPEmail(email, otp, name);
+
+    // Send welcome notification
+    const NotificationHelpers = require("../utils/notificationHelpers");
+    await NotificationHelpers.welcome(user._id, user.name);
+
+    res.status(201).json({
+      success: true,
+      message: "OTP sent to your email. Please verify.",
+      email: email,
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error. Please try again.",
+    });
+  }
+});
+
+// Verify OTP - Add notification after verification
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    // Check if OTP matches and not expired
+    if (user.otp.code !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP.",
+      });
+    }
+
+    if (new Date() > user.otp.expiresAt) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired. Please request a new one.",
+      });
+    }
+
+    // Verify user and clear OTP
+    user.isVerified = true;
+    user.otp = undefined;
+    await user.save();
+
+    // Send email verified notification
+    const NotificationHelpers = require("../utils/notificationHelpers");
+    await NotificationHelpers.emailVerified(user._id, user.name);
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, name: user.name },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Email verified successfully!",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        mobileNumber: user.mobileNumber,
+      },
+    });
+  } catch (error) {
+    console.error("OTP verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error. Please try again.",
+    });
+  }
+});
+
 
 // Verify OTP
 router.post("/verify-otp", async (req, res) => {

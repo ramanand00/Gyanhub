@@ -528,18 +528,7 @@ const Profile = () => {
                 </div>
               </div>
 
-              {/* Quick Actions */}
-              <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="p-6 space-y-3">
-                  <Link
-                    to="/settings"
-                    className="flex items-center justify-center w-full px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-orange-700 transition duration-200 shadow-md hover:shadow-lg"
-                  >
-                    <FiSettings className="w-5 h-5 mr-2" />
-                    Account Settings
-                  </Link>
-                </div>
-              </div>
+              
             </div>
           </div>
         </div>
