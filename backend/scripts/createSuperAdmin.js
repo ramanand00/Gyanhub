@@ -9,9 +9,9 @@ const createSuperAdmin = async () => {
     await mongoose.connect(process.env.MONGODB_URI);
     
     // You can change these values or pass them as command line arguments
-    const adminEmail = process.argv[2] || "admin@gyanpark.com";
-    const adminName = process.argv[3] || "Super Admin";
-    const plainPassword = process.argv[4] || "Admin@123456";
+    const adminEmail = process.argv[2] || "ramanand@riseuptech.com.np";
+    const adminName = process.argv[3] || "Ramanand Mandal";
+    const plainPassword = process.argv[4] || "Ramanand//@Admin001//";
     
     const adminData = {
       name: adminName,

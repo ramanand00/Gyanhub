@@ -15,18 +15,118 @@ const NotificationHelpers = require("../utils/notificationHelpers");
 
 
 // =============== DASHBOARD STATS ===============
+// routes/AdminRoutes.js - Add these new routes
+
+// Get dashboard activities
+router.get("/dashboard/activities", isAdmin, hasPermission("viewAnalytics"), async (req, res) => {
+  try {
+    // Get recent enrollments
+    const recentEnrollments = await Enrollment.find()
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('user', 'name')
+      .populate('course', 'title');
+
+    // Get recent course publications
+    const recentCourses = await Course.find({ isPublished: true })
+      .sort({ publishedAt: -1 })
+      .limit(5)
+      .populate('instructor', 'name');
+
+    // Get recent user registrations
+    const recentUsers = await User.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name email');
+
+    const activities = [];
+
+    // Add enrollment activities
+    recentEnrollments.forEach(enrollment => {
+      activities.push({
+        icon: '📚',
+        title: 'New Enrollment',
+        description: `${enrollment.user?.name || 'Someone'} enrolled in "${enrollment.course?.title || 'a course'}"`,
+        timestamp: enrollment.createdAt,
+      });
+    });
+
+    // Add course publication activities
+    recentCourses.forEach(course => {
+      activities.push({
+        icon: '📢',
+        title: 'Course Published',
+        description: `"${course.title}" was published by ${course.instructor?.name || 'a creator'}`,
+        timestamp: course.publishedAt,
+      });
+    });
+
+    // Add user registration activities
+    recentUsers.forEach(user => {
+      activities.push({
+        icon: '👤',
+        title: 'New User',
+        description: `${user.name} joined the platform`,
+        timestamp: user.createdAt,
+      });
+    });
+
+    // Sort by timestamp (newest first)
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.status(200).json({
+      success: true,
+      activities: activities.slice(0, 20),
+    });
+  } catch (error) {
+    console.error("Get activities error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// Get top courses
+router.get("/dashboard/top-courses", isAdmin, hasPermission("viewAnalytics"), async (req, res) => {
+  try {
+    const courses = await Course.find({ isPublished: true })
+      .sort({ enrollments: -1, rating: -1 })
+      .limit(10)
+      .select('title thumbnail price enrollments rating')
+      .populate('instructor', 'name');
+
+    res.status(200).json({
+      success: true,
+      courses,
+    });
+  } catch (error) {
+    console.error("Get top courses error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// Update dashboard stats with more detailed data
 router.get("/dashboard/stats", isAdmin, hasPermission("viewAnalytics"), async (req, res) => {
   try {
-    const [
-      totalUsers,
-      totalCourses,
-      totalEnrollments,
-      revenue,
-      pendingCreators,
-      totalAdmins,
-      totalLessons,
-      completedCourses
-    ] = await Promise.all([
+    const { period = 'month' } = req.query;
+    
+    // Get date range
+    const now = new Date();
+    let startDate = new Date();
+    if (period === 'week') {
+      startDate.setDate(now.getDate() - 7);
+    } else if (period === 'month') {
+      startDate.setMonth(now.getMonth() - 1);
+    } else if (period === 'year') {
+      startDate.setFullYear(now.getFullYear() - 1);
+    }
+
+    // Base stats
+    const [totalUsers, totalCourses, totalEnrollments, revenue, pendingCreators] = await Promise.all([
       User.countDocuments({ isVerified: true }),
       Course.countDocuments({ status: "published" }),
       Enrollment.countDocuments(),
@@ -35,10 +135,81 @@ router.get("/dashboard/stats", isAdmin, hasPermission("viewAnalytics"), async (r
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
       User.countDocuments({ 'creatorRequest.status': 'pending' }),
-      Admin.countDocuments({ isActive: true }),
-      Lesson.countDocuments(),
-      Enrollment.countDocuments({ completed: true }),
     ]);
+
+    // Additional stats
+    const [paidEnrollments, freeEnrollments, activeUsers, completionRate] = await Promise.all([
+      Enrollment.countDocuments({ paymentStatus: "completed" }),
+      Enrollment.countDocuments({ paymentStatus: "free" }),
+      User.countDocuments({ 
+        lastLogin: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
+      }),
+      Enrollment.aggregate([
+        { $group: { 
+          _id: null, 
+          avgProgress: { $avg: "$progress" },
+          completedCount: { $sum: { $cond: ["$completed", 1, 0] } },
+          totalCount: { $sum: 1 }
+        } }
+      ]),
+    ]);
+
+    // Calculate growth compared to previous period
+    const prevStartDate = new Date(startDate);
+    prevStartDate.setMonth(prevStartDate.getMonth() - 1);
+
+    const [currentUsers, prevUsers, currentEnrollments, prevEnrollments] = await Promise.all([
+      User.countDocuments({ isVerified: true, createdAt: { $gte: startDate } }),
+      User.countDocuments({ isVerified: true, createdAt: { $gte: prevStartDate, $lt: startDate } }),
+      Enrollment.countDocuments({ createdAt: { $gte: startDate } }),
+      Enrollment.countDocuments({ createdAt: { $gte: prevStartDate, $lt: startDate } }),
+    ]);
+
+    const userGrowth = prevUsers > 0 ? Math.round(((currentUsers - prevUsers) / prevUsers) * 100) : currentUsers > 0 ? 100 : 0;
+    const enrollmentGrowth = prevEnrollments > 0 ? Math.round(((currentEnrollments - prevEnrollments) / prevEnrollments) * 100) : currentEnrollments > 0 ? 100 : 0;
+
+    // Generate revenue data for chart
+    const revenueData = [];
+    const months = period === 'week' ? 7 : period === 'month' ? 12 : 12;
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const monthLabel = date.toLocaleString('default', { month: 'short' });
+      const revenue = await Enrollment.aggregate([
+        { 
+          $match: { 
+            paymentStatus: "completed",
+            createdAt: { 
+              $gte: new Date(date.getFullYear(), date.getMonth(), 1),
+              $lt: new Date(date.getFullYear(), date.getMonth() + 1, 1)
+            }
+          }
+        },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]);
+      revenueData.push({
+        label: monthLabel,
+        value: revenue[0]?.total || 0
+      });
+    }
+
+    // Generate enrollment data for chart
+    const enrollmentData = [];
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const monthLabel = date.toLocaleString('default', { month: 'short' });
+      const count = await Enrollment.countDocuments({
+        createdAt: { 
+          $gte: new Date(date.getFullYear(), date.getMonth(), 1),
+          $lt: new Date(date.getFullYear(), date.getMonth() + 1, 1)
+        }
+      });
+      enrollmentData.push({
+        label: monthLabel,
+        value: count
+      });
+    }
 
     // Get monthly registration stats
     const monthlyRegistrations = await User.aggregate([
@@ -57,47 +228,18 @@ router.get("/dashboard/stats", isAdmin, hasPermission("viewAnalytics"), async (r
       { $sort: { "_id.month": 1 } },
     ]);
 
-    // Get monthly enrollment stats
-    const monthlyEnrollments = await Enrollment.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: new Date(new Date().getFullYear(), 0, 1) },
-        },
-      },
-      {
-        $group: {
-          _id: { month: { $month: "$createdAt" } },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { "_id.month": 1 } },
-    ]);
-
     // Get recent users
     const recentUsers = await User.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .select("name email mobileNumber isVerified createdAt profilePicture");
+      .select("name email mobileNumber isVerified createdAt");
 
     // Get recent enrollments with user and course details
     const recentEnrollments = await Enrollment.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate("user", "name email profilePicture")
+      .populate("user", "name email")
       .populate("course", "title thumbnail");
-
-    // Get top courses by enrollment
-    const topCourses = await Course.find({ status: "published" })
-      .sort({ enrollments: -1 })
-      .limit(5)
-      .select("title thumbnail enrollments price rating");
-
-    // Get recent courses
-    const recentCourses = await Course.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate("instructor", "name email")
-      .select("title thumbnail status price createdAt");
 
     res.json({
       success: true,
@@ -107,15 +249,20 @@ router.get("/dashboard/stats", isAdmin, hasPermission("viewAnalytics"), async (r
         totalEnrollments,
         totalRevenue: revenue[0]?.total || 0,
         pendingCreators,
-        totalAdmins,
-        totalLessons,
-        completedCourses,
+        paidEnrollments,
+        freeEnrollments,
+        activeUsers,
+        completionRate: completionRate[0] ? Math.round((completionRate[0].completedCount / completionRate[0].totalCount) * 100) : 0,
+        userGrowth,
+        enrollmentGrowth,
+        revenueGrowth: 0, // Calculate similarly
+        courseGrowth: 0, // Calculate similarly
         monthlyRegistrations,
-        monthlyEnrollments,
         recentUsers,
         recentEnrollments,
-        topCourses,
-        recentCourses,
+        revenueData,
+        enrollmentData,
+        adminName: req.admin?.name || 'Admin',
       },
     });
   } catch (error) {
@@ -965,7 +1112,156 @@ router.post("/admins", isAdmin, hasPermission("manageAdmins"), async (req, res) 
 });
 
 
+// routes/AdminRoutes.js - Add these routes for payment analytics
 
+// Get dashboard stats with payment analytics
+router.get("/dashboard/stats", isAdmin, hasPermission("viewAnalytics"), async (req, res) => {
+  try {
+    const { timeRange = 'month' } = req.query;
+    
+    // Calculate date range
+    let startDate = new Date();
+    if (timeRange === 'week') {
+      startDate.setDate(startDate.getDate() - 7);
+    } else if (timeRange === 'month') {
+      startDate.setMonth(startDate.getMonth() - 1);
+    } else if (timeRange === 'quarter') {
+      startDate.setMonth(startDate.getMonth() - 3);
+    } else if (timeRange === 'year') {
+      startDate.setFullYear(startDate.getFullYear() - 1);
+    } else {
+      startDate = new Date('2020-01-01');
+    }
+
+    // Get all enrollments with payment data
+    const enrollments = await Enrollment.find({
+      createdAt: { $gte: startDate },
+      paymentStatus: { $in: ['completed', 'free'] }
+    }).populate('user', 'name email')
+      .populate('course', 'title price instructor');
+
+    // Calculate total revenue from paid courses
+    const paidEnrollments = enrollments.filter(e => e.paymentStatus === 'completed');
+    const totalRevenue = paidEnrollments.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    // Get top selling courses
+    const courseStats = {};
+    enrollments.forEach(enrollment => {
+      const courseId = enrollment.course?._id?.toString();
+      if (courseId) {
+        if (!courseStats[courseId]) {
+          courseStats[courseId] = {
+            title: enrollment.course?.title || 'Unknown',
+            thumbnail: enrollment.course?.thumbnail || '',
+            enrollments: 0,
+            revenue: 0,
+          };
+        }
+        courseStats[courseId].enrollments += 1;
+        if (enrollment.paymentStatus === 'completed') {
+          courseStats[courseId].revenue += (enrollment.amount || 0);
+        }
+      }
+    });
+
+    const topCourses = Object.values(courseStats)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+
+    // Get monthly revenue data
+    const monthlyRevenue = [];
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date();
+      month.setMonth(month.getMonth() - i);
+      const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
+      const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+      
+      const monthEnrollments = paidEnrollments.filter(e => {
+        const date = new Date(e.createdAt);
+        return date >= monthStart && date < monthEnd;
+      });
+      
+      const revenue = monthEnrollments.reduce((sum, e) => sum + (e.amount || 0), 0);
+      monthlyRevenue.push({
+        month: month.getMonth() + 1,
+        year: month.getFullYear(),
+        revenue,
+        enrollments: monthEnrollments.length,
+      });
+    }
+
+    // Get recent transactions
+    const recentTransactions = await Enrollment.find({
+      paymentStatus: { $in: ['completed', 'pending', 'failed'] }
+    })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('user', 'name email')
+      .populate('course', 'title');
+
+    const formattedTransactions = recentTransactions.map(t => ({
+      transactionId: t.transactionId || t._id,
+      courseTitle: t.course?.title || 'Unknown',
+      studentName: t.user?.name || 'Unknown',
+      amount: t.amount || 0,
+      status: t.paymentStatus || 'pending',
+      createdAt: t.createdAt,
+    }));
+
+    // Get creator requests count
+    const creatorRequests = await User.countDocuments({
+      'creatorRequest.status': 'pending'
+    });
+
+    // Get other stats
+    const [totalUsers, totalCourses, totalEnrollments, completedCourses] = await Promise.all([
+      User.countDocuments({ isVerified: true }),
+      Course.countDocuments({ status: 'published' }),
+      Enrollment.countDocuments(),
+      Enrollment.countDocuments({ completed: true }),
+    ]);
+
+    // Count paid vs free courses
+    const paidCourses = await Course.countDocuments({ 
+      isPaid: true, 
+      status: 'published' 
+    });
+    const freeCourses = await Course.countDocuments({ 
+      isPaid: false, 
+      status: 'published' 
+    });
+
+    // Get unique students who have enrolled in at least one course
+    const uniqueStudents = await Enrollment.distinct('user');
+    const totalStudents = uniqueStudents.length;
+
+    res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        totalCourses,
+        totalEnrollments,
+        totalRevenue,
+        paidCourses,
+        freeCourses,
+        totalStudents,
+        completedCourses,
+        pendingEnrollments: await Enrollment.countDocuments({ paymentStatus: 'pending' }),
+        refundedPayments: await Enrollment.countDocuments({ paymentStatus: 'refunded' }),
+        creatorRequests,
+        monthlyRevenue,
+        topCourses,
+        recentTransactions: formattedTransactions,
+      },
+    });
+  } catch (error) {
+    console.error("Dashboard stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
 
 // Approve creator request
 router.put("/admin/approve-creator/:userId", isAdmin, hasPermission("manageUsers"), async (req, res) => {

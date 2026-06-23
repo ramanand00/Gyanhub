@@ -21,6 +21,8 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/courses', icon: '📚', label: 'Courses' },
     { path: '/admin/enrollments', icon: '📝', label: 'Enrollments' },
     { path: '/admin/admins', icon: '🔑', label: 'Admins', permission: 'manageAdmins' },
+    // { path: '/admin/course-builder', icon: '🏗️', label: 'Course Builder' },
+    { path: '/admin/creator-requests', icon: '🎓', label: 'Creator Requests' },
   ];
 
   return (

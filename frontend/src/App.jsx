@@ -24,6 +24,7 @@ import AdminCourses from './pages/admin/AdminCourses';
 import Enrollments from './pages/admin/Enrollments';
 import Admins from './pages/admin/Admins';
 import CreatorRequests from './pages/admin/CreatorRequests';
+import MyLearning from './pages/MyLearning';
 
 // Components
 import Navbar from './components/Navbar';
@@ -34,6 +35,7 @@ import CourseBuilder from './pages/CourseBuilder';
 import MyCourses from './pages/MyCourses';
 import CourseDetails from './pages/CourseDetails';
 import CourseLearning from './pages/CourseLearning';
+import PaymentPage from './pages/PaymentPage';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentFailure from './pages/PaymentFailure';
 
@@ -193,7 +195,7 @@ function AppContent() {
         <Route path="/profile/:userId" element={<UserProfile />} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         <Route path="/course-edit/:courseId" element={<ProtectedRoute><EditCourse /></ProtectedRoute>} />
-        
+        <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />
         {/* ===== ADMIN ROUTES ===== */}
         
         {/* Public Admin Routes */}
@@ -253,8 +255,10 @@ function AppContent() {
 <Route path="/my-courses" element={<MyCourses />} />
 <Route path="/course/:courseId" element={<CourseDetails />} />
 <Route path="/course/:courseId/learn" element={<CourseLearning />} />
-<Route path="/payment/success" element={<PaymentSuccess />} />
-<Route path="/payment/failure" element={<PaymentFailure />} />
+
+<Route path="/payment/:courseId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+<Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+<Route path="/payment/failure" element={<ProtectedRoute><PaymentFailure /></ProtectedRoute>} />
 <Route path="/forgot-password" element={<ForgotPassword />} />
 <Route path="/reset-password/:token" element={<ResetPassword />} />
 <Route path="/settings" element={<Settings />} />

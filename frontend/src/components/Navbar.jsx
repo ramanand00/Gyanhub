@@ -1,10 +1,9 @@
-// components/Navbar.jsx - Updated with creator-only My Courses
+// components/Navbar.jsx - Updated with My Learning link
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useRef } from 'react';
 import logo from '../assets/logo.png';
 import NotificationDropdown from './NotificationDropdown';
-
 
 const Navbar = () => {
   const { user } = useAuth();
@@ -91,6 +90,23 @@ const Navbar = () => {
               </span>
             </Link>
 
+            {/* My Learning - For all users */}
+            <Link
+              to="/my-learning"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/my-learning')
+                  ? 'bg-white/20 text-white shadow-lg'
+                  : 'text-green-100 hover:bg-white/10 hover:text-white hover:scale-105'
+              }`}
+            >
+              <span className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 8.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                </svg>
+                <span>My Learning</span>
+              </span>
+            </Link>
+
             {/* My Courses - ONLY for creators */}
             {user?.isCreator && (
               <Link
@@ -130,7 +146,6 @@ const Navbar = () => {
           {/* Right Section */}
           <div className="hidden md:flex items-center space-x-4">
             <NotificationDropdown />
-            
 
             {/* User Dropdown */}
             <div className="relative" ref={dropdownRef}>
@@ -189,6 +204,18 @@ const Navbar = () => {
                       My Profile
                     </Link>
                     
+                    {/* My Learning - In dropdown */}
+                    <Link
+                      to="/my-learning"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors duration-200"
+                    >
+                      <svg className="w-5 h-5 mr-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 8.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                      </svg>
+                      My Learning
+                    </Link>
+                    
                     {/* My Courses - ONLY for creators in dropdown */}
                     {user?.isCreator && (
                       <>
@@ -202,7 +229,6 @@ const Navbar = () => {
                           </svg>
                           My Courses
                         </Link>
-                        
                       </>
                     )}
                     
@@ -273,6 +299,22 @@ const Navbar = () => {
                 Courses
               </Link>
 
+              {/* Mobile - My Learning */}
+              <Link
+                to="/my-learning"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
+                  isActive('/my-learning')
+                    ? 'bg-white/20 text-white'
+                    : 'text-green-100 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 8.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                </svg>
+                My Learning
+              </Link>
+
               {/* Mobile - My Courses ONLY for creators */}
               {user?.isCreator && (
                 <>
@@ -290,7 +332,6 @@ const Navbar = () => {
                     </svg>
                     My Courses
                   </Link>
-                  
                 </>
               )}
               
