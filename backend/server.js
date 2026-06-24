@@ -5,7 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const notificationRoutes = require("./routes/NotificationRoutes");
-
+const adminProgramRoutes = require("./routes/AdminProgramRoutes");
 
 const app = express();
 
@@ -58,6 +58,7 @@ app.use("/api/settings", require("./routes/SettingsRoutes"));
 // Admin Routes
 app.use("/api/admin/auth", require("./routes/AdminAuthRoutes"));
 app.use("/api/admin", require("./routes/AdminRoutes"));
+app.use("/api/admin", adminProgramRoutes);
 
 app.use("/api/user", require("./routes/UserRoutes"));
 app.use("/api/courses", require("./routes/CourseRoutes"));

@@ -2,6 +2,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AdminAuthProvider, useAdminAuth } from './contexts/AdminAuthContext';
+import Programs from './pages/admin/Programs';
+import ProgramSemesters from './pages/admin/ProgramSemesters';
+import SemesterBooks from './pages/admin/SemesterBooks';
+import BookChapters from './pages/admin/BookChapters';
+import ChapterNotes from './pages/admin/ChapterNotes';
+
+
 
 // User Pages
 import Welcome from './pages/Welcome';
@@ -184,6 +191,47 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/admin/programs"
+  element={
+    <AdminProtectedRoute>
+      <Programs />
+    </AdminProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/programs/:programId/semesters"
+  element={
+    <AdminProtectedRoute>
+      <ProgramSemesters />
+    </AdminProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/semesters/:semesterId/books"
+  element={
+    <AdminProtectedRoute>
+      <SemesterBooks />
+    </AdminProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/books/:bookId/chapters"
+  element={
+    <AdminProtectedRoute>
+      <BookChapters />
+    </AdminProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/chapters/:chapterId/notes"
+  element={
+    <AdminProtectedRoute>
+      <ChapterNotes />
+    </AdminProtectedRoute>
+  }
+/>
         <Route
           path="/profile"
           element={

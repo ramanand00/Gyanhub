@@ -21,8 +21,9 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/courses', icon: '📚', label: 'Courses' },
     { path: '/admin/enrollments', icon: '📝', label: 'Enrollments' },
     { path: '/admin/admins', icon: '🔑', label: 'Admins', permission: 'manageAdmins' },
-    // { path: '/admin/course-builder', icon: '🏗️', label: 'Course Builder' },
     { path: '/admin/creator-requests', icon: '🎓', label: 'Creator Requests' },
+    // NEW: Programs section
+    { path: '/admin/programs', icon: '📋', label: 'Programs' },
   ];
 
   return (
@@ -46,7 +47,6 @@ const AdminLayout = ({ children }) => {
 
         <nav className="flex-1 overflow-y-auto py-4">
           {navItems.map((item) => {
-            // Check permission if required
             if (item.permission && !admin?.permissions?.[item.permission]) {
               return null;
             }
