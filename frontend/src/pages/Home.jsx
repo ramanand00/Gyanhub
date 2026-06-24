@@ -31,12 +31,6 @@ const Home = () => {
     }
   };
 
-  // Format date for member since
-  const formatDate = (date) => {
-    if (!date) return '2024';
-    const d = new Date(date);
-    return d.getFullYear();
-  };
 
   // Get random color for course cards
   const getCourseColor = (index) => {
@@ -67,101 +61,13 @@ const Home = () => {
             <p className="text-xl text-green-100 mb-6">
               Your gateway to quality education. Learn from expert instructors and advance your career.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Link
-                to="/courses"
-                className="px-6 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors shadow-lg hover:shadow-xl"
-              >
-                Browse Courses
-              </Link>
-              {!user && (
-                <Link
-                  to="/register"
-                  className="px-6 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors backdrop-blur-sm"
-                >
-                  Get Started
-                </Link>
-              )}
-            </div>
+          
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Welcome Section */}
-        {user && (
-          <div className="bg-white rounded-xl shadow-xl p-8 border-l-4 border-orange-500 mb-8">
-            <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xl font-bold">
-                  {user?.name?.charAt(0) || 'U'}
-                </span>
-              </div>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                  Welcome back, <span className="text-green-600">{user?.name}</span>!
-                </h2>
-                <p className="text-gray-600">Continue your learning journey with GyanPark.</p>
-                <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-orange-50 rounded-lg border border-green-200">
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <p className="text-green-700 font-medium">✅ Your account is verified!</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-green-500 hover:shadow-lg transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Member Since</p>
-                <p className="text-lg font-semibold text-gray-800">
-                  {user?.createdAt ? formatDate(user.createdAt) : '2024'}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-orange-500 hover:shadow-lg transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Status</p>
-                <p className="text-lg font-semibold text-green-600">Active</p>
-              </div>
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-green-500 hover:shadow-lg transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Courses</p>
-                <p className="text-lg font-semibold text-gray-800">{courses.length}</p>
-              </div>
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
+       
         {/* Featured Courses Section */}
         {featuredCourses.length > 0 && (
           <div className="mb-12">
@@ -291,43 +197,7 @@ const Home = () => {
             </div>
           )}
         </div>
-
-        {/* Quick Links Section */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Link
-            to="/courses"
-            className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-200 text-center group"
-          >
-            <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">📚</div>
-            <h3 className="font-semibold text-gray-800">Browse Courses</h3>
-            <p className="text-sm text-gray-500">Explore all available courses</p>
-          </Link>
-          <Link
-            to="/my-learning"
-            className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-200 text-center group"
-          >
-            <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">📖</div>
-            <h3 className="font-semibold text-gray-800">My Learning</h3>
-            <p className="text-sm text-gray-500">Continue your courses</p>
-          </Link>
-          <Link
-            to="/profile"
-            className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-200 text-center group"
-          >
-            <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">👤</div>
-            <h3 className="font-semibold text-gray-800">My Profile</h3>
-            <p className="text-sm text-gray-500">View and edit profile</p>
-          </Link>
-          <Link
-            to="/settings"
-            className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-200 text-center group"
-          >
-            <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">⚙️</div>
-            <h3 className="font-semibold text-gray-800">Settings</h3>
-            <p className="text-sm text-gray-500">Manage account settings</p>
-          </Link>
         </div>
-      </div>
     </div>
   );
 };
