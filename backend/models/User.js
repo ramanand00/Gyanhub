@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
+    // ===== BASIC USER INFO =====
     name: {
       type: String,
       required: true,
@@ -14,12 +15,32 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function() {
+        // Password is required only if user doesn't have googleId
+        return !this.googleId;
+      },
     },
     mobileNumber: {
       type: String,
-      required: true,
+      required: function() {
+        // Mobile number is required only if user doesn't have googleId
+        return !this.googleId;
+      },
     },
+    
+    // ===== GOOGLE AUTH FIELDS (NEW) =====
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null/undefined values for non-Google users
+      index: true,
+    },
+    picture: {
+      type: String,
+      default: null,
+    },
+
+    // ===== EMAIL VERIFICATION =====
     isVerified: {
       type: Boolean,
       default: false,
@@ -28,20 +49,24 @@ const userSchema = new mongoose.Schema(
       code: String,
       expiresAt: Date,
     },
+
+    // ===== PASSWORD RESET =====
     resetPasswordToken: {
       type: String,
     },
     resetPasswordExpires: {
       type: Date,
     },
-    // Refresh Token
+
+    // ===== TOKEN MANAGEMENT =====
     refreshToken: {
       type: String,
     },
     refreshTokenExpires: {
       type: Date,
     },
-    // Role and Creator fields
+
+    // ===== ROLE & CREATOR =====
     role: {
       type: String,
       enum: ['user', 'creator', 'admin'],
@@ -66,7 +91,8 @@ const userSchema = new mongoose.Schema(
       portfolio: String,
     },
 
-     followers: [{
+    // ===== FOLLOW SYSTEM =====
+    followers: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     }],
@@ -82,14 +108,12 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    
-    // Profile visibility
+
+    // ===== PROFILE =====
     isPublicProfile: {
       type: Boolean,
       default: true,
     },
-    
-    // Profile fields
     profilePicture: {
       type: String,
       default: null,
@@ -128,7 +152,8 @@ const userSchema = new mongoose.Schema(
     },
     skills: [String],
     interests: [String],
-    // Creator stats
+
+    // ===== CREATOR STATS =====
     totalStudents: {
       type: Number,
       default: 0,
@@ -145,7 +170,8 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    // Session Management
+
+    // ===== SESSION MANAGEMENT =====
     lastLogin: {
       type: Date,
     },
@@ -162,5 +188,92 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// ===== INDEXES FOR PERFORMANCE =====
+userSchema.index({ email: 1 });
+userSchema.index({ googleId: 1 });
+userSchema.index({ isCreator: 1 });
+userSchema.index({ role: 1 });
+userSchema.index({ createdAt: -1 });
+
+// ===== VIRTUAL PROPERTIES =====
+userSchema.virtual('isGoogleUser').get(function() {
+  return !!this.googleId;
+});
+
+userSchema.virtual('hasPassword').get(function() {
+  return !!this.password;
+});
+
+// ===== METHODS =====
+userSchema.methods.toJSON = function() {
+  const user = this.toObject();
+  delete user.password;
+  delete user.otp;
+  delete user.resetPasswordToken;
+  delete user.resetPasswordExpires;
+  delete user.refreshToken;
+  delete user.refreshTokenExpires;
+  return user;
+};
+
+// ===== STATIC METHODS =====
+userSchema.statics.findByGoogleId = function(googleId) {
+  return this.findOne({ googleId });
+};
+
+userSchema.statics.findByEmail = function(email) {
+  return this.findOne({ email });
+};
+
+userSchema.statics.findOrCreateGoogleUser = async function(googleData) {
+  const { googleId, email, name, picture } = googleData;
+  
+  // Try to find by googleId first
+  let user = await this.findOne({ googleId });
+  
+  if (user) {
+    // Update existing user
+    user.lastLogin = new Date();
+    user.picture = picture || user.picture;
+    user.profilePicture = picture || user.profilePicture;
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+    return user;
+  }
+  
+  // Try to find by email
+  user = await this.findOne({ email });
+  
+  if (user) {
+    // Link Google account to existing user
+    user.googleId = googleId;
+    user.isVerified = true;
+    user.picture = picture || user.picture;
+    user.profilePicture = picture || user.profilePicture;
+    user.lastLogin = new Date();
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+    return user;
+  }
+  
+  // Create new user
+  user = new this({
+    googleId,
+    email,
+    name,
+    picture: picture || '',
+    profilePicture: picture || '',
+    isVerified: true,
+    isActive: true,
+    password: undefined, // No password for Google users
+    mobileNumber: undefined, // No mobile number for Google users
+    lastLogin: new Date(),
+    loginCount: 1,
+  });
+  
+  await user.save();
+  return user;
+};
 
 module.exports = mongoose.model("User", userSchema);

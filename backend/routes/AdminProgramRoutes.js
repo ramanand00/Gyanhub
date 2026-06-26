@@ -315,6 +315,7 @@ router.post("/semesters", isAdmin, hasPermission("manageCourses"), async (req, r
       semesterNumber,
       duration,
       order: semesterNumber,
+         isPublished: true, 
     });
 
     await semester.save();
@@ -789,6 +790,8 @@ router.get("/chapters/:chapterId/notes", isAdmin, hasPermission("manageCourses")
   }
 });
 
+// ==================== NOTE MANAGEMENT ====================
+
 // Create note with file upload
 router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) => {
   try {
@@ -806,54 +809,95 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
       order,
     } = req.body;
 
+    console.log('📝 Creating note for chapter:', chapterId);
+    console.log('📝 Note data:', { title, description, content, isImportant });
+
+    // Validate required fields
+    if (!chapterId) {
+      return res.status(400).json({
+        success: false,
+        message: "Chapter ID is required"
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(chapterId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid chapter ID"
+      });
+    }
+
+    if (!title || title.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: "Note title is required"
+      });
+    }
+
+    // Find the chapter
     const chapter = await Chapter.findById(chapterId);
     if (!chapter) {
-      return res.status(404).json({ success: false, message: "Chapter not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Chapter not found"
+      });
     }
+
+    console.log('✅ Chapter found:', chapter.title);
 
     // Process attachments and upload to cloudinary
     const processedAttachments = [];
     if (attachments && attachments.length > 0) {
+      console.log(`📎 Processing ${attachments.length} attachments...`);
+      
       for (const attachment of attachments) {
-        let processedAttachment = { ...attachment };
+        try {
+          let processedAttachment = { ...attachment };
 
-        // If it's a file (base64), upload to cloudinary
-        if (attachment.url && attachment.url.startsWith('data:')) {
-          try {
-            let resourceType = 'auto';
-            let folder = 'note_attachments';
+          // If it's a file (base64), upload to cloudinary
+          if (attachment.url && attachment.url.startsWith('data:')) {
+            try {
+              let resourceType = 'auto';
+              let folder = 'note_attachments';
 
-            // Determine resource type
-            if (attachment.type === 'image') {
-              resourceType = 'image';
-              folder = 'note_images';
-            } else if (attachment.type === 'video') {
-              resourceType = 'video';
-              folder = 'note_videos';
-            } else if (attachment.type === 'pdf') {
-              resourceType = 'raw';
-              folder = 'note_pdfs';
-            } else {
-              resourceType = 'raw';
-              folder = 'note_files';
+              // Determine resource type
+              if (attachment.type === 'image') {
+                resourceType = 'image';
+                folder = 'note_images';
+              } else if (attachment.type === 'video') {
+                resourceType = 'video';
+                folder = 'note_videos';
+              } else if (attachment.type === 'pdf') {
+                resourceType = 'raw';
+                folder = 'note_pdfs';
+              } else {
+                resourceType = 'raw';
+                folder = 'note_files';
+              }
+
+              console.log(`📤 Uploading ${attachment.type} to Cloudinary...`);
+              
+              const uploadResponse = await cloudinary.uploader.upload(attachment.url, {
+                folder: folder,
+                resource_type: resourceType,
+                quality: 'auto',
+              });
+
+              processedAttachment.url = uploadResponse.secure_url;
+              processedAttachment.publicId = uploadResponse.public_id;
+              
+              console.log(`✅ Uploaded successfully: ${uploadResponse.secure_url}`);
+            } catch (uploadError) {
+              console.error("❌ Cloudinary upload error:", uploadError);
+              // Keep original URL if upload fails
+              processedAttachment.publicId = null;
             }
-
-            const uploadResponse = await cloudinary.uploader.upload(attachment.url, {
-              folder: folder,
-              resource_type: resourceType,
-              quality: 'auto',
-            });
-
-            processedAttachment.url = uploadResponse.secure_url;
-            processedAttachment.publicId = uploadResponse.public_id;
-          } catch (uploadError) {
-            console.error("Cloudinary upload error:", uploadError);
-            // Keep original URL if upload fails
-            processedAttachment.publicId = null;
           }
-        }
 
-        processedAttachments.push(processedAttachment);
+          processedAttachments.push(processedAttachment);
+        } catch (err) {
+          console.error('❌ Error processing attachment:', err);
+        }
       }
     }
 
@@ -861,14 +905,16 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
     let processedVideoUrl = videoUrl || '';
     if (videoUrl && videoUrl.startsWith('data:video')) {
       try {
+        console.log('📤 Uploading video to Cloudinary...');
         const uploadResponse = await cloudinary.uploader.upload(videoUrl, {
           folder: 'note_videos',
           resource_type: 'video',
           quality: 'auto',
         });
         processedVideoUrl = uploadResponse.secure_url;
+        console.log('✅ Video uploaded successfully');
       } catch (uploadError) {
-        console.error("Cloudinary video upload error:", uploadError);
+        console.error("❌ Cloudinary video upload error:", uploadError);
       }
     }
 
@@ -876,24 +922,27 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
     let processedPdfUrl = pdfUrl || '';
     if (pdfUrl && pdfUrl.startsWith('data:application/pdf')) {
       try {
+        console.log('📤 Uploading PDF to Cloudinary...');
         const uploadResponse = await cloudinary.uploader.upload(pdfUrl, {
           folder: 'note_pdfs',
           resource_type: 'raw',
           quality: 'auto',
         });
         processedPdfUrl = uploadResponse.secure_url;
+        console.log('✅ PDF uploaded successfully');
       } catch (uploadError) {
-        console.error("Cloudinary PDF upload error:", uploadError);
+        console.error("❌ Cloudinary PDF upload error:", uploadError);
       }
     }
 
+    // Create the note
     const note = new Note({
-      chapterId,
+      chapterId: chapter._id,
       bookId: chapter.bookId,
       semesterId: chapter.semesterId,
       programId: chapter.programId,
-      title,
-      description,
+      title: title.trim(),
+      description: description || '',
       content: content || '',
       attachments: processedAttachments,
       videoUrl: processedVideoUrl,
@@ -902,10 +951,13 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
       tags: tags || [],
       isImportant: isImportant || false,
       order: order || 0,
+      isPublished: true, // Default to published for admin created notes
     });
 
     await note.save();
+    console.log('✅ Note created successfully:', note._id);
 
+    // Update chapter with note reference
     chapter.notes.push(note._id);
     chapter.totalNotes = (chapter.totalNotes || 0) + 1;
     await chapter.save();
@@ -916,8 +968,15 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
       note,
     });
   } catch (error) {
-    console.error("Create note error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("❌ Create note error:", error);
+    console.error("Error stack:", error.stack);
+    
+    // Send detailed error for debugging
+    res.status(500).json({
+      success: false,
+      message: "Failed to create note: " + error.message,
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

@@ -75,37 +75,68 @@ const ChapterNotes = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setUploadProgress(0);
-    try {
-      if (editingNote) {
-        await API.put(`/api/admin/notes/${editingNote._id}`, formData);
-      } else {
-        await API.post('/api/admin/notes', { ...formData, chapterId });
-      }
-      setShowModal(false);
-      setEditingNote(null);
-      setFormData({
-        title: '',
-        description: '',
-        content: '',
-        attachments: [],
-        videoUrl: '',
-        pdfUrl: '',
-        links: [{ title: '', url: '' }],
-        tags: [''],
-        isImportant: false,
-        order: 0,
-      });
-      fetchChapterAndNotes();
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to save note');
-    } finally {
-      setSaving(false);
-      setUploadProgress(100);
+  e.preventDefault();
+  
+  // Validate required fields
+  if (!formData.title || formData.title.trim() === '') {
+    alert('Please enter a note title');
+    return;
+  }
+  
+  setSaving(true);
+  setUploadProgress(0);
+  
+  try {
+    // Prepare the data for submission
+    const submitData = {
+      chapterId: chapterId,
+      title: formData.title.trim(),
+      description: formData.description || '',
+      content: formData.content || '',
+      attachments: formData.attachments || [],
+      videoUrl: formData.videoUrl || '',
+      pdfUrl: formData.pdfUrl || '',
+      links: formData.links || [],
+      tags: formData.tags || [],
+      isImportant: formData.isImportant || false,
+      order: parseInt(formData.order) || 0,
+    };
+    
+    console.log('📤 Submitting note data:', submitData);
+    
+    if (editingNote) {
+      await API.put(`/api/admin/notes/${editingNote._id}`, submitData);
+    } else {
+      await API.post('/api/admin/notes', submitData);
     }
-  };
+    
+    setShowModal(false);
+    setEditingNote(null);
+    setFormData({
+      title: '',
+      description: '',
+      content: '',
+      attachments: [],
+      videoUrl: '',
+      pdfUrl: '',
+      links: [{ title: '', url: '' }],
+      tags: [''],
+      isImportant: false,
+      order: 0,
+    });
+    fetchChapterAndNotes();
+  } catch (error) {
+    console.error('❌ Failed to save note:', error);
+    console.error('Error response:', error.response?.data);
+    
+    // Show detailed error message
+    const errorMessage = error.response?.data?.message || 'Failed to save note';
+    alert(errorMessage);
+  } finally {
+    setSaving(false);
+    setUploadProgress(100);
+  }
+};
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this note?')) return;

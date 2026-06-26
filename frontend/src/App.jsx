@@ -7,7 +7,10 @@ import ProgramSemesters from './pages/admin/ProgramSemesters';
 import SemesterBooks from './pages/admin/SemesterBooks';
 import BookChapters from './pages/admin/BookChapters';
 import ChapterNotes from './pages/admin/ChapterNotes';
-
+import ProgramDetails from './pages/ProgramDetails';
+import SemesterDetails from './pages/SemesterDetails';
+import BookDetails from './pages/BookDetails';
+import ChapterDetails from './pages/ChapterDetails';
 
 
 // User Pages
@@ -240,6 +243,10 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        <Route path="/program/:programId" element={<ProgramDetails />} />
+        <Route path="/semester/:semesterId" element={<SemesterDetails />} />
+<Route path="/book/:bookId" element={<BookDetails />} />
+<Route path="/chapter/:chapterId" element={<ChapterDetails />} />
         <Route path="/profile/:userId" element={<UserProfile />} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         <Route path="/course-edit/:courseId" element={<ProtectedRoute><EditCourse /></ProtectedRoute>} />

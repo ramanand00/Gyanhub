@@ -35,7 +35,6 @@ const noteSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-    // File attachments
     attachments: [{
       type: {
         type: String,
@@ -60,27 +59,22 @@ const noteSchema = new mongoose.Schema(
         type: String,
       },
     }],
-    // For video content
     videoUrl: {
       type: String,
       default: '',
     },
-    // For PDF content
     pdfUrl: {
       type: String,
       default: '',
     },
-    // Links
     links: [{
       title: String,
       url: String,
     }],
-    // Tags for organization
     tags: [{
       type: String,
       trim: true,
     }],
-    // Important note flag
     isImportant: {
       type: Boolean,
       default: false,
@@ -91,7 +85,7 @@ const noteSchema = new mongoose.Schema(
     },
     isPublished: {
       type: Boolean,
-      default: false,
+      default: true,
     },
   },
   {
