@@ -5,6 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Initialize Google OAuth client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post('/', async (req, res) => {
@@ -31,15 +32,45 @@ router.post('/', async (req, res) => {
 
     console.log(`✅ Google user verified: ${email}`);
 
-    // Use the static method to find or create user
-    const user = await User.findOrCreateGoogleUser({
-      googleId,
-      email,
-      name,
-      picture,
-    });
-
-    console.log(`👤 User: ${user.name} (${user.isGoogleUser ? 'Google' : 'Existing'})`);
+    // Find or create user
+    let user = await User.findOne({ googleId });
+    
+    if (!user) {
+      // Check if user exists with this email (from regular registration)
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        // Link Google account to existing user
+        existingUser.googleId = googleId;
+        existingUser.isVerified = true;
+        existingUser.picture = picture || existingUser.picture;
+        existingUser.profilePicture = picture || existingUser.profilePicture;
+        await existingUser.save();
+        user = existingUser;
+        console.log(`🔗 Google account linked to existing user: ${email}`);
+      } else {
+        // Create new user
+        user = new User({
+          googleId,
+          email,
+          name,
+          picture: picture || '',
+          profilePicture: picture || '',
+          isVerified: true,
+          isActive: true,
+          // Password and mobileNumber will be undefined (not required for Google users)
+        });
+        await user.save();
+        console.log(`🆕 New user created via Google: ${email}`);
+      }
+    } else {
+      // Update last login and picture
+      user.lastLogin = new Date();
+      user.picture = picture || user.picture;
+      user.profilePicture = picture || user.profilePicture;
+      user.loginCount = (user.loginCount || 0) + 1;
+      await user.save();
+      console.log(`👤 Existing user logged in via Google: ${email}`);
+    }
 
     // Create JWT token
     const jwtToken = jwt.sign(
@@ -49,7 +80,6 @@ router.post('/', async (req, res) => {
         name: user.name,
         role: user.role || 'user',
         isCreator: user.isCreator || false,
-        isGoogleUser: user.isGoogleUser,
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
@@ -63,11 +93,17 @@ router.post('/', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // Send user data (password and sensitive fields are automatically removed by toJSON)
+    // Remove sensitive data
+    const userData = user.toObject();
+    delete userData.password;
+    delete userData.otp;
+    delete userData.refreshToken;
+    delete userData.refreshTokenExpires;
+
     res.json({
       success: true,
       message: 'Google login successful',
-      user: user.toJSON(),
+      user: userData,
       token: jwtToken,
     });
   } catch (error) {
@@ -75,7 +111,7 @@ router.post('/', async (req, res) => {
     
     let errorMessage = 'Authentication failed';
     if (error.name === 'ValidationError') {
-      errorMessage = 'User data validation failed';
+      errorMessage = 'User data validation failed: ' + Object.values(error.errors).map(e => e.message).join(', ');
     } else if (error.message.includes('invalid')) {
       errorMessage = 'Invalid Google token';
     }
@@ -107,7 +143,8 @@ router.get('/status', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(decoded.userId)
+      .select('-password -otp -refreshToken -refreshTokenExpires');
     
     if (!user || !user.isActive) {
       return res.json({ authenticated: false });
@@ -115,9 +152,18 @@ router.get('/status', async (req, res) => {
 
     res.json({
       authenticated: true,
-      user: user.toJSON(),
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        picture: user.picture || user.profilePicture,
+        isCreator: user.isCreator || false,
+        role: user.role || 'user',
+        isVerified: user.isVerified || false,
+      },
     });
   } catch (error) {
+    console.error('Auth status error:', error);
     res.json({ authenticated: false });
   }
 });

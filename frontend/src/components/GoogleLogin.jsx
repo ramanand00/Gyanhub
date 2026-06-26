@@ -17,8 +17,8 @@ const GoogleLoginButton = () => {
 
     try {
       console.log('📤 Sending Google token to backend...');
+      console.log('🔑 Token:', credentialResponse.credential.substring(0, 50) + '...');
       
-      // ✅ FIX: Remove duplicate /google
       const res = await API.post('/api/auth/google', {
         token: credentialResponse.credential,
       });
@@ -26,13 +26,16 @@ const GoogleLoginButton = () => {
       console.log('✅ Google login response:', res.data);
 
       if (res.data.success) {
+        // Use the existing login function from AuthContext
         login(res.data.token, null, res.data.user);
         navigate('/home');
+      } else {
+        setError(res.data.error || 'Failed to login with Google');
       }
     } catch (error) {
       console.error('❌ Google login error:', error);
-      setError(error.response?.data?.error || 'Failed to login with Google');
-      setTimeout(() => setError(''), 5000);
+      console.error('Response:', error.response?.data);
+      setError(error.response?.data?.error || 'Failed to login with Google. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -41,7 +44,7 @@ const GoogleLoginButton = () => {
   return (
     <div className="flex flex-col items-center space-y-3 w-full">
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg w-full">
+        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg w-full text-sm">
           {error}
         </div>
       )}
