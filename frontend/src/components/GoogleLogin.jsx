@@ -17,7 +17,6 @@ const GoogleLoginButton = () => {
 
     try {
       console.log('📤 Sending Google token to backend...');
-      console.log('🔑 Token:', credentialResponse.credential.substring(0, 50) + '...');
       
       const res = await API.post('/api/auth/google', {
         token: credentialResponse.credential,
@@ -26,15 +25,14 @@ const GoogleLoginButton = () => {
       console.log('✅ Google login response:', res.data);
 
       if (res.data.success) {
-        // Use the existing login function from AuthContext
-        login(res.data.token, null, res.data.user);
+        // Store token and user data
+        login(res.data.token, res.data.refreshToken, res.data.user);
         navigate('/home');
       } else {
         setError(res.data.error || 'Failed to login with Google');
       }
     } catch (error) {
       console.error('❌ Google login error:', error);
-      console.error('Response:', error.response?.data);
       setError(error.response?.data?.error || 'Failed to login with Google. Please try again.');
     } finally {
       setLoading(false);

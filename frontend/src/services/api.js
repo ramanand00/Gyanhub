@@ -1,9 +1,12 @@
 // services/api.js
 import axios from "axios";
 
+// Use environment variable for API URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 // Create axios instance
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+  baseURL: API_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -206,14 +209,13 @@ export const tokenHelpers = {
     return Math.floor((expiry.getTime() - Date.now()) / 1000);
   },
 
-  // Auto refresh token before expiry (call this periodically)
-  setupAutoRefresh: (interval = 60000) => { // Check every minute
+  // Auto refresh token before expiry
+  setupAutoRefresh: (interval = 60000) => {
     return setInterval(async () => {
       const token = tokenHelpers.getAccessToken();
       if (!token) return;
 
       const remainingTime = tokenHelpers.getTokenRemainingTime(token);
-      // If token expires in less than 5 minutes, refresh it
       if (remainingTime > 0 && remainingTime < 300) {
         try {
           const refreshToken = tokenHelpers.getRefreshToken();

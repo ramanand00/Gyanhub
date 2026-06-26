@@ -4,8 +4,8 @@ const router = express.Router();
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const TokenService = require('../services/tokenService');
 
-// Initialize Google OAuth client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post('/', async (req, res) => {
@@ -57,7 +57,6 @@ router.post('/', async (req, res) => {
           profilePicture: picture || '',
           isVerified: true,
           isActive: true,
-          // Password and mobileNumber will be undefined (not required for Google users)
         });
         await user.save();
         console.log(`🆕 New user created via Google: ${email}`);
@@ -72,26 +71,8 @@ router.post('/', async (req, res) => {
       console.log(`👤 Existing user logged in via Google: ${email}`);
     }
 
-    // Create JWT token
-    const jwtToken = jwt.sign(
-      { 
-        userId: user._id, 
-        email: user.email,
-        name: user.name,
-        role: user.role || 'user',
-        isCreator: user.isCreator || false,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    // Set cookie
-    res.cookie('token', jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    // Generate tokens
+    const tokens = await TokenService.generateTokens(user);
 
     // Remove sensitive data
     const userData = user.toObject();
@@ -100,18 +81,20 @@ router.post('/', async (req, res) => {
     delete userData.refreshToken;
     delete userData.refreshTokenExpires;
 
+    // ✅ Send tokens in response body for cross-domain compatibility
     res.json({
       success: true,
       message: 'Google login successful',
       user: userData,
-      token: jwtToken,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     });
   } catch (error) {
     console.error('❌ Google auth error:', error);
     
     let errorMessage = 'Authentication failed';
     if (error.name === 'ValidationError') {
-      errorMessage = 'User data validation failed: ' + Object.values(error.errors).map(e => e.message).join(', ');
+      errorMessage = 'User data validation failed';
     } else if (error.message.includes('invalid')) {
       errorMessage = 'Invalid Google token';
     }
@@ -126,7 +109,6 @@ router.post('/', async (req, res) => {
 
 // Logout
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
   res.json({ 
     success: true,
     message: 'Logged out successfully' 
@@ -136,8 +118,12 @@ router.post('/logout', (req, res) => {
 // Check auth status
 router.get('/status', async (req, res) => {
   try {
-    const token = req.cookies.token;
-    
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.json({ authenticated: false });
+    }
+
+    const token = authHeader.split(' ')[1];
     if (!token) {
       return res.json({ authenticated: false });
     }

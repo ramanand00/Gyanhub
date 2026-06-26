@@ -18,11 +18,11 @@ connectDB();
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'https://gyan-park-qag2.vercel.app',
-  // 'https://www.gajanandmandal.com.np',
+  'https://www.gajanandmandal.com.np',
   'https://gyanpark.riseuptech.com.np',
   'https://gyan-park.vercel.app',
-  // 'http://localhost:5173',
-  // 'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:3000',
 ];
 
 app.use(
