@@ -19,6 +19,7 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/dashboard', icon: '📊', label: 'Dashboard' },
     { path: '/admin/users', icon: '👥', label: 'Users' },
     { path: '/admin/courses', icon: '📚', label: 'Courses' },
+    { path: '/admin/content', icon: '📝', label: 'Content Manager' },
     { path: '/admin/enrollments', icon: '📝', label: 'Enrollments' },
     { path: '/admin/admins', icon: '🔑', label: 'Admins', permission: 'manageAdmins' },
     { path: '/admin/creator-requests', icon: '🎓', label: 'Creator Requests' },

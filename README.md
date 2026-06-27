@@ -435,7 +435,7 @@ Vercel for hosting
 All open-source libraries used in this project
 
 📞 Support
-For support, email support@gyanpark.com or create an issue in the repository.
+For support, email mail@riseuptech.com.np or create an issue in the repository.
 
 🚀 Roadmap
 Video conferencing integration

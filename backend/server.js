@@ -8,6 +8,9 @@ const notificationRoutes = require("./routes/NotificationRoutes");
 const adminProgramRoutes = require("./routes/AdminProgramRoutes");
 const programRoutes = require("./routes/ProgramRoutes");
 const cookieParser = require('cookie-parser'); // Add this
+const contentRoutes = require("./routes/ContentRoutes");
+const contactRoutes = require("./routes/ContactRoutes");
+
 
 const app = express();
 
@@ -64,6 +67,8 @@ app.use("/api/admin/auth", require("./routes/AdminAuthRoutes"));
 app.use("/api/admin", require("./routes/AdminRoutes"));
 app.use("/api/admin", adminProgramRoutes);
 app.use("/api/auth/google", require("./routes/GoogleAuthRoutes")); // ✅ Add Google Auth Routes
+app.use("/api/admin", contentRoutes);
+app.use("/api", contactRoutes);
 
 // User Routes
 app.use("/api/user", require("./routes/UserRoutes"));

@@ -3,6 +3,45 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../services/api';
+import { 
+  FiBook, 
+  FiGrid, 
+  FiClock, 
+  FiCalendar, 
+  FiArrowRight, 
+  FiChevronDown,
+  FiFilter,
+  FiTrendingUp,
+  FiAward,
+  FiBookOpen,
+  FiLayers,
+  FiFolder,
+  FiStar,
+  FiUsers,
+  FiRefreshCw,
+  FiHome,
+  FiInfo,
+  FiThumbsUp,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiEdit3,
+  FiHash,
+  FiTag,
+  FiArrowLeft
+} from 'react-icons/fi';
+import { 
+  FaSpinner, 
+  FaGraduationCap, 
+  FaBook, 
+  FaUniversity,
+  FaCalendarAlt,
+  FaSortAmountDown,
+  FaSortAmountUp,
+  FaSortAlphaDown,
+  FaSortAlphaUp,
+  FaUserCircle
+} from 'react-icons/fa';
+import { MdOutlineCategory, MdOutlineDateRange } from 'react-icons/md';
 
 const Home = () => {
   const { user } = useAuth();
@@ -36,13 +75,10 @@ const Home = () => {
     try {
       setLoading(true);
       setError('');
-      console.log('🔄 Fetching programs...');
       
       const response = await API.get('/api/programs', {
         params: { limit: 50 }
       });
-      
-      console.log('📚 Programs Response:', response.data);
       
       if (response.data.success) {
         setPrograms(response.data.programs || []);
@@ -91,15 +127,30 @@ const Home = () => {
   const getSortLabel = () => {
     switch (sortBy) {
       case 'newest':
-        return '🆕 Newest First';
+        return 'Newest First';
       case 'oldest':
-        return '📅 Oldest First';
+        return 'Oldest First';
       case 'nameAsc':
-        return '🔤 A to Z';
+        return 'A to Z';
       case 'nameDesc':
-        return '🔤 Z to A';
+        return 'Z to A';
       default:
         return 'Sort By';
+    }
+  };
+
+  const getSortIcon = () => {
+    switch (sortBy) {
+      case 'newest':
+        return <FaSortAmountDown className="w-4 h-4" />;
+      case 'oldest':
+        return <FaSortAmountUp className="w-4 h-4" />;
+      case 'nameAsc':
+        return <FaSortAlphaDown className="w-4 h-4" />;
+      case 'nameDesc':
+        return <FaSortAlphaUp className="w-4 h-4" />;
+      default:
+        return <FiFilter className="w-4 h-4" />;
     }
   };
 
@@ -136,7 +187,16 @@ const Home = () => {
   };
 
   const getSemesterIcon = (semesterNumber) => {
-    const icons = ['🌟', '📚', '🎯', '💡', '🚀', '🎨', '⚡', '🏆'];
+    const icons = [
+      <FiStar key="star" className="text-lg" />,
+      <FiBook key="book" className="text-lg" />,
+      <FiAward key="award" className="text-lg" />,
+      <FiTrendingUp key="trending" className="text-lg" />,
+      <FiLayers key="layers" className="text-lg" />,
+      <FiGrid key="grid" className="text-lg" />,
+      <FiClock key="clock" className="text-lg" />,
+      <FiThumbsUp key="thumbsup" className="text-lg" />
+    ];
     return icons[(semesterNumber - 1) % icons.length];
   };
 
@@ -144,8 +204,8 @@ const Home = () => {
     if (!semesters || semesters.length === 0) {
       return (
         <div className="mt-6 pt-4 border-t-2 border-gray-100">
-          <div className="text-center py-8 bg-gray-50 rounded-xl">
-            <span className="text-4xl block mb-2">📭</span>
+          <div className="text-center py-6 bg-gray-50 rounded-lg">
+            <FiBookOpen className="text-3xl text-gray-400 mx-auto mb-2" />
             <p className="text-gray-500 text-sm">No semesters available</p>
           </div>
         </div>
@@ -170,9 +230,11 @@ const Home = () => {
       <div className="mt-5 pt-4 border-t-2 border-gray-100">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider flex items-center gap-2">
-            <span>📚</span> Semesters
+            <FiLayers className="w-4 h-4" />
+            Semesters
           </p>
-          <span className="text-xs bg-gradient-to-r from-green-100 to-orange-100 px-3 py-1 rounded-full text-gray-700 font-medium">
+          <span className="text-xs bg-gradient-to-r from-green-100 to-orange-100 px-3 py-1 rounded-full text-gray-700 font-medium flex items-center gap-1">
+            <FiBook className="w-3 h-3" />
             {semesters.length} of 8
           </span>
         </div>
@@ -213,7 +275,7 @@ const Home = () => {
                         <span className="text-xs text-gray-500">
                           {semester.totalBooks || 0}
                         </span>
-                        <span className="text-xs text-gray-400">📖</span>
+                        <FiBook className="text-xs text-gray-400" />
                       </div>
                     </div>
                   </Link>
@@ -226,7 +288,8 @@ const Home = () => {
         {semesters.length === 8 && (
           <div className="mt-3 flex items-center justify-center gap-2">
             <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full flex items-center gap-1">
-              <span className="text-sm">✅</span> All 8 semesters available
+              <FiCheckCircle className="text-sm" />
+              All 8 semesters available
             </span>
           </div>
         )}
@@ -235,9 +298,10 @@ const Home = () => {
           <div className="mt-3">
             <Link
               to={`/program/${programId}`}
-              className="block w-full px-4 py-2.5 bg-gradient-to-r from-green-50 to-orange-50 rounded-lg text-sm font-medium text-green-700 hover:from-green-100 hover:to-orange-100 transition-all text-center border-2 border-dashed border-green-200"
+              className="block w-full px-4 py-2.5 bg-gradient-to-r from-green-50 to-orange-50 rounded-lg text-sm font-medium text-green-700 hover:from-green-100 hover:to-orange-100 transition-all text-center border-2 border-dashed border-green-200 flex items-center justify-center gap-2"
             >
-              View All {semesters.length} Semesters →
+              View All {semesters.length} Semesters
+              <FiArrowRight className="w-4 h-4" />
             </Link>
           </div>
         )}
@@ -249,7 +313,7 @@ const Home = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-orange-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-500 mx-auto"></div>
+          <FaSpinner className="animate-spin h-16 w-16 text-green-500 mx-auto" />
           <p className="mt-4 text-gray-600 text-lg font-medium">Loading programs...</p>
         </div>
       </div>
@@ -259,14 +323,15 @@ const Home = () => {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-orange-50">
-        <div className="text-center max-w-md bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-6xl mb-4">😕</div>
+        <div className="text-center max-w-md bg-white rounded-2xl shadow-xl p-8 border-l-4 border-red-500">
+          <FiAlertCircle className="text-6xl text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Something Went Wrong</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={fetchPrograms}
-            className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-colors shadow-lg hover:shadow-xl"
+            className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2 mx-auto"
           >
+            <FiRefreshCw className="w-5 h-5" />
             Try Again
           </button>
         </div>
@@ -276,37 +341,58 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50">
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-green-600 to-green-800 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full mix-blend-multiply filter blur-3xl animate-pulse delay-1000"></div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Welcome to <span className="text-orange-300">GyanPark</span>
-            </h1>
-            <p className="text-xl text-green-100 mb-6">
-              Explore our programs, semesters, and study materials. Learn from the best resources.
-            </p>
-            {user && (
-              <div className="flex items-center gap-2 text-green-200 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full inline-flex">
-                <span className="text-2xl">👋</span>
-                <span>Welcome back, {user.name}!</span>
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Welcome Card - Styled like Contact page header */}
+        <div className="bg-white rounded-xl shadow-xl p-6 mb-8 border-l-4 border-green-500 hover:shadow-2xl transition-shadow duration-200">
+          <div className="flex items-start space-x-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+              {user?.name ? (
+                <span className="text-white text-2xl font-bold">
+                  {user.name.charAt(0)}
+                </span>
+              ) : (
+                <FaUserCircle className="text-white text-3xl" />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  <FaGraduationCap className="text-green-600" />
+                  Welcome to GyanPark
+                </h1>
+                {user && (
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+                    👋 Hello, {user.name}!
+                  </span>
+                )}
               </div>
-            )}
+              <p className="text-gray-600 mt-1">
+                Explore our programs, semesters, and study materials. Learn from the best resources.
+              </p>
+              <div className="flex flex-wrap gap-3 mt-3">
+                <span className="inline-flex items-center gap-1.5 text-xs bg-gray-100 px-3 py-1.5 rounded-full text-gray-600">
+                  <FiBook className="w-3.5 h-3.5" />
+                  {filteredPrograms.length} Programs
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs bg-gray-100 px-3 py-1.5 rounded-full text-gray-600">
+                  <FiLayers className="w-3.5 h-3.5" />
+                  {programs.reduce((acc, p) => acc + (p.totalSemesters || 0), 0)} Semesters
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs bg-gray-100 px-3 py-1.5 rounded-full text-gray-600">
+                  <FiBookOpen className="w-3.5 h-3.5" />
+                  {programs.reduce((acc, p) => acc + (p.totalBooks || 0), 0)} Books
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Sorting Controls */}
-        <div className="bg-white rounded-2xl shadow-lg p-4 mb-8 flex flex-wrap items-center justify-between gap-4">
+        {/* Sorting Controls - Clean card design */}
+        <div className="bg-white rounded-xl shadow-md p-4 mb-8 flex flex-wrap items-center justify-between gap-4 border-t-4 border-orange-500 hover:shadow-lg transition-shadow duration-200">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <span className="text-lg">📊</span> 
-              <span className="bg-gray-100 px-3 py-1 rounded-full">
+              <FiGrid className="text-lg text-green-600" />
+              <span className="bg-gradient-to-r from-green-100 to-orange-100 px-3 py-1 rounded-full flex items-center gap-1 text-sm">
                 {filteredPrograms.length} programs
               </span>
             </span>
@@ -315,22 +401,16 @@ const Home = () => {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold text-sm hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold text-sm hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
             >
-              <span>Sort By</span>
-              <span className="text-base">{getSortLabel()}</span>
-              <svg 
-                className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <FiFilter className="w-4 h-4" />
+              <span>Sort: {getSortLabel()}</span>
+              {getSortIcon()}
+              <FiChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 transition-all duration-200 ease-out origin-top-right">
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
                 <div className="py-1">
                   <button
                     onClick={() => handleSortChange('newest')}
@@ -340,10 +420,10 @@ const Home = () => {
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <span className="text-lg">🆕</span>
+                    <FaSortAmountDown className="text-lg" />
                     <span>Newest First</span>
                     {sortBy === 'newest' && (
-                      <span className="ml-auto text-green-600">✓</span>
+                      <FiCheckCircle className="ml-auto text-green-600" />
                     )}
                   </button>
                   <button
@@ -354,10 +434,10 @@ const Home = () => {
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <span className="text-lg">📅</span>
+                    <FaSortAmountUp className="text-lg" />
                     <span>Oldest First</span>
                     {sortBy === 'oldest' && (
-                      <span className="ml-auto text-green-600">✓</span>
+                      <FiCheckCircle className="ml-auto text-green-600" />
                     )}
                   </button>
                   <div className="border-t border-gray-100 my-1"></div>
@@ -369,10 +449,10 @@ const Home = () => {
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <span className="text-lg">🔤</span>
+                    <FaSortAlphaDown className="text-lg" />
                     <span>A to Z</span>
                     {sortBy === 'nameAsc' && (
-                      <span className="ml-auto text-green-600">✓</span>
+                      <FiCheckCircle className="ml-auto text-green-600" />
                     )}
                   </button>
                   <button
@@ -383,10 +463,10 @@ const Home = () => {
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <span className="text-lg">🔤</span>
+                    <FaSortAlphaUp className="text-lg" />
                     <span>Z to A</span>
                     {sortBy === 'nameDesc' && (
-                      <span className="ml-auto text-green-600">✓</span>
+                      <FiCheckCircle className="ml-auto text-green-600" />
                     )}
                   </button>
                 </div>
@@ -395,117 +475,99 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Programs Grid */}
+        {/* Programs Grid - Image on Top */}
         {filteredPrograms.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
-            <div className="text-7xl mb-4">📚</div>
+          <div className="bg-white rounded-xl shadow-xl p-12 text-center border-l-4 border-orange-500">
+            <FiBookOpen className="text-6xl text-gray-400 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold text-gray-800 mb-2">No Programs Available</h3>
             <p className="text-gray-600">Check back later for new programs and study materials.</p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {filteredPrograms.map((program, index) => (
               <div
                 key={program._id}
-                className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 w-full"
+                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-200 border-l-4 border-green-500"
               >
-                {/* Program Header */}
-                <div className={`h-64 bg-gradient-to-r ${getProgramColor(index)} relative w-full`}>
+                {/* Program Image - Top */}
+                <div className={`h-56 w-full bg-gradient-to-r ${getProgramColor(index)} relative`}>
                   {program.thumbnail ? (
                     <img 
                       src={program.thumbnail} 
                       alt={program.title} 
-                      className="w-full h-full object-cover transition-transform duration-300"
+                      className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.style.display = 'none';
                       }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-9xl">
-                      🎓
+                    <div className="w-full h-full flex items-center justify-center">
+                      <FaUniversity className="text-8xl text-white/30" />
                     </div>
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-                    <div className="flex flex-wrap items-center gap-4 text-white/90 text-sm">
-                      <span className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full">
-                        <span className="text-xl">📚</span>
-                        {program.totalSemesters || 0} Semesters
-                      </span>
-                      <span className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full">
-                        <span className="text-xl">📖</span>
-                        {program.totalBooks || 0} Books
-                      </span>
-                      <span className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full">
-                        <span className="text-xl">🏷️</span>
-                        {program.category}
-                      </span>
-                      <span className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs">
-                        <span>📅</span>
-                        {new Date(program.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
+                  
+                  {/* Overlay badges */}
+                  <div className="absolute top-4 right-4 flex flex-col gap-2">
+                    <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg">
+                      {program.category}
+                    </span>
+                    <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg flex items-center gap-1">
+                      <FiClock className="w-3 h-3" />
+                      {program.duration || '4 Years'}
+                    </span>
+                  </div>
+                  
+                  <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
+                    <span className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1">
+                      <FiLayers className="w-3 h-3" />
+                      {program.totalSemesters || 0} Semesters
+                    </span>
+                    <span className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1">
+                      <FiBook className="w-3 h-3" />
+                      {program.totalBooks || 0} Books
+                    </span>
+                    <span className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1">
+                      <FiCalendar className="w-3 h-3" />
+                      {new Date(program.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
-                
+
                 {/* Program Info */}
-                <div className="p-6 flex-1 flex flex-col w-full">
-                  <div className="flex items-start justify-between">
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-800">
+                      <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <FiBookOpen className="text-green-600" />
                         {program.title}
                       </h3>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
-                          ⏱️ {program.duration}
+                        <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium flex items-center gap-1">
+                          <FiHash className="w-3 h-3" />
+                          ID: {program._id.slice(-6)}
                         </span>
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                          🆔 {program._id.slice(-6)}
+                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
+                          <FiEdit3 className="w-3 h-3" />
+                          Updated: {new Date(program.updatedAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1 text-xs text-gray-400">
-                      <span className="bg-gray-50 px-3 py-1.5 rounded-full flex items-center gap-1">
-                        <span>📅 Created</span>
-                        <span className="font-medium text-gray-600">
-                          {new Date(program.createdAt).toLocaleDateString()}
-                        </span>
-                      </span>
-                      <span className="bg-gray-50 px-3 py-1.5 rounded-full flex items-center gap-1">
-                        <span>🔄 Updated</span>
-                        <span className="font-medium text-gray-600">
-                          {new Date(program.updatedAt).toLocaleDateString()}
-                        </span>
-                      </span>
-                    </div>
+                    <Link
+                      to={`/program/${program._id}`}
+                      className="bg-gradient-to-r from-green-500 to-green-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 group whitespace-nowrap"
+                    >
+                      <span>View Program</span>
+                      <FiArrowRight className="group-hover:translate-x-1 transition-transform" />
+                    </Link>
                   </div>
                   
-                  <p className="text-gray-600 text-base mt-3 line-clamp-2">
+                  <p className="text-gray-600 text-sm mt-3 line-clamp-2">
                     {program.description}
                   </p>
                   
                   {/* Semesters Grid */}
                   {renderSemesters(program.semesters, program._id)}
-                  
-                  <div className="mt-5 flex items-center justify-between pt-4 border-t-2 border-gray-100">
-                    <Link
-                      to={`/program/${program._id}`}
-                      className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2.5 rounded-lg font-semibold text-sm hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 group"
-                    >
-                      <span>Explore Full Program</span>
-                      <span className="group-hover:translate-x-1 transition-transform">→</span>
-                    </Link>
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className="text-gray-400">📊</span>
-                      <span className="text-gray-600 font-medium">
-                        {program.totalSemesters || 0} Semesters
-                      </span>
-                      <span className="text-gray-300">|</span>
-                      <span className="text-gray-600 font-medium">
-                        {program.totalBooks || 0} Books
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
             ))}
