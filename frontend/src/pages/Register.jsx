@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import API from '../services/api';
+import GoogleLoginButton from '../components/GoogleLogin';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -17,12 +18,21 @@ const Register = () => {
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOtp] = useState('');
   const [email, setEmail] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // Added state for password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Check if terms are accepted
+    if (!acceptTerms) {
+      setError('Please accept the Terms and Conditions to continue');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -63,10 +73,86 @@ const Register = () => {
     }
   };
 
-  // Toggle password visibility
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  // Terms and Conditions Modal
+  const TermsModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 relative">
+        <button
+          onClick={() => setShowTermsModal(false)}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition duration-200"
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Terms and Conditions</h2>
+        
+        <div className="space-y-4 text-gray-600 text-sm">
+          <div>
+            <h3 className="font-semibold text-gray-800 text-base">1. Acceptance of Terms</h3>
+            <p>By creating an account on GyanPark, you agree to these Terms and Conditions. If you do not agree, please do not use our services.</p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-800 text-base">2. User Accounts</h3>
+            <p>You must provide accurate and complete information when creating your account. You are responsible for maintaining the security of your account credentials.</p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-800 text-base">3. Privacy Policy</h3>
+            <p>Your privacy is important to us. We collect and process personal data in accordance with our Privacy Policy. By using our services, you consent to such processing.</p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-800 text-base">4. Acceptable Use</h3>
+            <p>You agree to use GyanPark only for lawful purposes and in a manner that does not infringe the rights of others or restrict their use of the platform.</p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-800 text-base">5. Content and Intellectual Property</h3>
+            <p>All content on GyanPark is protected by copyright and other intellectual property rights. You may not reproduce, distribute, or create derivative works without permission.</p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-800 text-base">6. Termination</h3>
+            <p>We reserve the right to suspend or terminate your account if you violate these terms or engage in any fraudulent or harmful activities.</p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-800 text-base">7. Limitation of Liability</h3>
+            <p>GyanPark is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the platform.</p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-800 text-base">8. Changes to Terms</h3>
+            <p>We may update these terms from time to time. You will be notified of any significant changes, and continued use constitutes acceptance of the updated terms.</p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-800 text-base">9. Contact</h3>
+            <p>For any questions about these terms, please contact us at support@gyanpark.com.</p>
+          </div>
+        </div>
+        
+        <div className="mt-6">
+          <button
+            onClick={() => {
+              setAcceptTerms(true);
+              setShowTermsModal(false);
+            }}
+            className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition duration-200"
+          >
+            I Agree to Terms & Conditions
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (showOTP) {
     return (
@@ -201,6 +287,21 @@ const Register = () => {
             </div>
           )}
 
+          {/* ✅ Google Login Button */}
+          <div className="mb-6">
+            <GoogleLoginButton />
+          </div>
+
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-3 bg-white text-gray-500">or register with email</span>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-gray-700 text-sm font-semibold mb-2">
@@ -276,7 +377,7 @@ const Register = () => {
                     </svg>
                   ) : (
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 012 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                     </svg>
                   )}
                 </button>
@@ -302,6 +403,38 @@ const Register = () => {
                   placeholder="+977 9800000000"
                   required
                 />
+              </div>
+            </div>
+
+            {/* Terms and Conditions Checkbox */}
+            <div className="flex items-start space-x-3 mt-2">
+              <div className="flex items-center h-5">
+                <input
+                  id="accept-terms"
+                  type="checkbox"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+                />
+              </div>
+              <div className="flex-1">
+                <label htmlFor="accept-terms" className="text-sm text-gray-700">
+                  I have read and agree to the{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowTermsModal(true)}
+                    className="font-semibold text-green-600 hover:text-green-700 hover:underline transition duration-200"
+                  >
+                    Terms and Conditions
+                  </button>
+                  {' '}and{' '}
+                  <Link to="/privacy" className="font-semibold text-green-600 hover:text-green-700 hover:underline transition duration-200">
+                    Privacy Policy
+                  </Link>
+                </label>
+                {!acceptTerms && error && (
+                  <p className="text-xs text-red-500 mt-1">Please accept the terms to continue</p>
+                )}
               </div>
             </div>
 
@@ -332,22 +465,11 @@ const Register = () => {
               </Link>
             </p>
           </div>
-
-          {/* Terms and Conditions */}
-          <div className="mt-4 text-center">
-            <p className="text-xs text-gray-500">
-              By creating an account, you agree to our{' '}
-              <Link to="/terms" className="text-green-600 hover:underline">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link to="/privacy" className="text-green-600 hover:underline">
-                Privacy Policy
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
+
+      {/* Terms Modal */}
+      {showTermsModal && <TermsModal />}
     </div>
   );
 };
