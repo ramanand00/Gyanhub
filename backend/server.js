@@ -3,14 +3,14 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const path = require("path"); // ✅ Add this import
 const connectDB = require("./config/db");
 const notificationRoutes = require("./routes/NotificationRoutes");
 const adminProgramRoutes = require("./routes/AdminProgramRoutes");
 const programRoutes = require("./routes/ProgramRoutes");
-const cookieParser = require('cookie-parser'); // Add this
+const cookieParser = require('cookie-parser');
 const contentRoutes = require("./routes/ContentRoutes");
 const contactRoutes = require("./routes/ContactRoutes");
-
 
 const app = express();
 
@@ -66,7 +66,7 @@ app.use("/api/settings", require("./routes/SettingsRoutes"));
 app.use("/api/admin/auth", require("./routes/AdminAuthRoutes"));
 app.use("/api/admin", require("./routes/AdminRoutes"));
 app.use("/api/admin", adminProgramRoutes);
-app.use("/api/auth/google", require("./routes/GoogleAuthRoutes")); // ✅ Add Google Auth Routes
+app.use("/api/auth/google", require("./routes/GoogleAuthRoutes"));
 app.use("/api/admin", contentRoutes);
 app.use("/api", contactRoutes);
 
@@ -82,15 +82,12 @@ app.use("/api/payment", require("./routes/PaymentRoutes"));
 // Notification Routes
 app.use("/api/notifications", notificationRoutes.router);
 
-// ✅ FIX: Mount Program Routes at /api (NOT /api/api)
-// Since your ProgramRoutes.js has routes starting with /api,
-// we need to mount it at root, or change the routes to remove /api
-// OPTION 1: Mount at root (recommended)
+// Program Routes
 app.use(programRoutes);
-
-// OPTION 2: If you want to keep app.use("/api", programRoutes), 
-// then remove /api from routes in ProgramRoutes.js
 app.use("/api", programRoutes);
+
+// ✅ Serve static files from uploads directory - MOVED HERE
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

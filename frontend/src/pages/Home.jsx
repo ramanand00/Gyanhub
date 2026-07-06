@@ -170,43 +170,15 @@ const Home = () => {
     return colors[index % colors.length];
   };
 
-  const getSemesterColor = (index) => {
-    const colors = [
-      'border-blue-500 bg-blue-50 hover:bg-blue-100 text-blue-700',
-      'border-purple-500 bg-purple-50 hover:bg-purple-100 text-purple-700',
-      'border-pink-500 bg-pink-50 hover:bg-pink-100 text-pink-700',
-      'border-green-500 bg-green-50 hover:bg-green-100 text-green-700',
-      'border-orange-500 bg-orange-50 hover:bg-orange-100 text-orange-700',
-      'border-red-500 bg-red-50 hover:bg-red-100 text-red-700',
-      'border-indigo-500 bg-indigo-50 hover:bg-indigo-100 text-indigo-700',
-      'border-teal-500 bg-teal-50 hover:bg-teal-100 text-teal-700',
-      'border-cyan-500 bg-cyan-50 hover:bg-cyan-100 text-cyan-700',
-      'border-amber-500 bg-amber-50 hover:bg-amber-100 text-amber-700',
-    ];
-    return colors[index % colors.length];
-  };
-
-  const getSemesterIcon = (semesterNumber) => {
-    const icons = [
-      <FiStar key="star" className="text-lg" />,
-      <FiBook key="book" className="text-lg" />,
-      <FiAward key="award" className="text-lg" />,
-      <FiTrendingUp key="trending" className="text-lg" />,
-      <FiLayers key="layers" className="text-lg" />,
-      <FiGrid key="grid" className="text-lg" />,
-      <FiClock key="clock" className="text-lg" />,
-      <FiThumbsUp key="thumbsup" className="text-lg" />
-    ];
-    return icons[(semesterNumber - 1) % icons.length];
-  };
-
+  // Enhanced semester rendering function
   const renderSemesters = (semesters, programId) => {
     if (!semesters || semesters.length === 0) {
       return (
         <div className="mt-6 pt-4 border-t-2 border-gray-100">
-          <div className="text-center py-6 bg-gray-50 rounded-lg">
-            <FiBookOpen className="text-3xl text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-500 text-sm">No semesters available</p>
+          <div className="text-center py-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+            <FiBookOpen className="text-4xl text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 text-sm font-medium">No semesters available</p>
+            <p className="text-gray-400 text-xs mt-1">Check back later for updates</p>
           </div>
         </div>
       );
@@ -226,28 +198,79 @@ const Home = () => {
       }
     }
 
+    // Enhanced color palette with gradients
+    const getSemesterGradient = (index) => {
+      const gradients = [
+        'from-blue-500 to-blue-600 border-blue-400',
+        'from-purple-500 to-purple-600 border-purple-400',
+        'from-pink-500 to-pink-600 border-pink-400',
+        'from-green-500 to-green-600 border-green-400',
+        'from-orange-500 to-orange-600 border-orange-400',
+        'from-red-500 to-red-600 border-red-400',
+        'from-indigo-500 to-indigo-600 border-indigo-400',
+        'from-teal-500 to-teal-600 border-teal-400',
+        'from-cyan-500 to-cyan-600 border-cyan-400',
+        'from-amber-500 to-amber-600 border-amber-400',
+      ];
+      return gradients[index % gradients.length];
+    };
+
+    const getSemesterIcon = (semesterNumber) => {
+      const icons = {
+        1: <FaGraduationCap className="text-lg" />,
+        2: <FiBook className="text-lg" />,
+        3: <FiAward className="text-lg" />,
+        4: <FiTrendingUp className="text-lg" />,
+        5: <FiLayers className="text-lg" />,
+        6: <FiGrid className="text-lg" />,
+        7: <FiClock className="text-lg" />,
+        8: <FiStar className="text-lg" />,
+      };
+      return icons[semesterNumber] || <FiBook className="text-lg" />;
+    };
+
+    const getSemesterLabel = (semesterNumber) => {
+      const labels = {
+        1: 'Foundation',
+        2: 'Core',
+        3: 'Advanced',
+        4: 'Specialized',
+        5: 'Expert',
+        6: 'Mastery',
+        7: 'Professional',
+        8: 'Capstone',
+      };
+      return labels[semesterNumber] || `Semester ${semesterNumber}`;
+    };
+
     return (
-      <div className="mt-5 pt-4 border-t-2 border-gray-100">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider flex items-center gap-2">
-            <FiLayers className="w-4 h-4" />
-            Semesters
-          </p>
-          <span className="text-xs bg-gradient-to-r from-green-100 to-orange-100 px-3 py-1 rounded-full text-gray-700 font-medium flex items-center gap-1">
-            <FiBook className="w-3 h-3" />
-            {semesters.length} of 8
-          </span>
+      <div className="mt-6 pt-4 border-t-2 border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-gradient-to-br from-green-100 to-orange-100 rounded-lg">
+              <FiLayers className="w-4 h-4 text-green-600" />
+            </div>
+            <p className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+              Semester Overview
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-gradient-to-r from-green-100 to-emerald-100 px-3 py-1.5 rounded-full text-green-700 font-medium flex items-center gap-1.5 shadow-sm">
+              <FiCheckCircle className="w-3 h-3" />
+              {semesters.length} of 8
+            </span>
+          </div>
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {rows.map((row, rowIndex) => (
-            <div key={rowIndex} className="grid grid-cols-4 gap-3">
+            <div key={rowIndex} className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {row.map((semester, colIndex) => {
                 if (!semester) {
                   return (
                     <div 
                       key={`empty-${rowIndex}-${colIndex}`} 
-                      className="px-4 py-3.5 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 opacity-50"
+                      className="px-4 py-4 bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-200 opacity-50 backdrop-blur-sm"
                     >
                       <div className="invisible">Empty</div>
                     </div>
@@ -255,28 +278,75 @@ const Home = () => {
                 }
                 
                 const globalIndex = rowIndex * 4 + colIndex;
-                const semesterColor = getSemesterColor(globalIndex);
+                const gradient = getSemesterGradient(globalIndex);
                 const icon = getSemesterIcon(semester.semesterNumber);
+                const label = getSemesterLabel(semester.semesterNumber);
                 
                 return (
                   <Link
                     key={semester._id}
                     to={`/semester/${semester._id}`}
-                    className={`px-3 py-4 border-l-4 ${semesterColor} rounded-r-lg font-medium transition-all duration-200 hover:shadow-md hover:scale-[1.02] group flex flex-col items-center justify-center text-center`}
+                    className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    <div className="flex flex-col items-center w-full">
-                      <div className="flex items-center gap-1.5 w-full justify-center">
-                        <span className="text-lg">{icon}</span>
-                        <span className="font-bold text-sm">
-                          Sem {semester.semesterNumber}
+                    {/* Gradient Background with Animation */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90 group-hover:opacity-100 transition-opacity duration-300`}>
+                      <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+                    </div>
+                    
+                    {/* Decorative Elements */}
+                    <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="absolute -bottom-8 -left-8 w-16 h-16 bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
+                    
+                    {/* Card Content */}
+                    <div className="relative p-4 z-10">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-white/80 text-lg">
+                              {icon}
+                            </span>
+                            <span className="text-white font-bold text-sm truncate">
+                              Sem {semester.semesterNumber}
+                            </span>
+                          </div>
+                          <p className="text-white/70 text-xs font-medium truncate">
+                            {label}
+                          </p>
+                        </div>
+                        <div className="ml-2 flex-shrink-0">
+                          <div className="bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 text-center">
+                            <span className="text-white font-bold text-xs">
+                              {semester.totalBooks || 0}
+                            </span>
+                            <span className="text-white/70 text-[10px] ml-0.5">📚</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Bottom Info */}
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-white/60 rounded-full transition-all duration-500 group-hover:w-full"
+                            style={{ width: `${Math.min((semester.totalBooks || 0) * 12.5, 100)}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-white/60 text-[10px] font-medium">
+                          {Math.min((semester.totalBooks || 0) * 12.5, 100)}%
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-xs text-gray-500">
-                          {semester.totalBooks || 0}
-                        </span>
-                        <FiBook className="text-xs text-gray-400" />
+                      
+                      {/* Hover Effect - Arrow */}
+                      <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
+                          <FiArrowRight className="text-white text-xs" />
+                        </div>
                       </div>
+                    </div>
+                    
+                    {/* Glow Effect on Hover */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     </div>
                   </Link>
                 );
@@ -285,9 +355,35 @@ const Home = () => {
           ))}
         </div>
 
+        {/* Progress Summary */}
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-2 text-center border border-green-100">
+            <p className="text-xs text-green-700 font-semibold">Total</p>
+            <p className="text-sm font-bold text-green-800">{semesters.length}</p>
+          </div>
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-2 text-center border border-blue-100">
+            <p className="text-xs text-blue-700 font-semibold">Books</p>
+            <p className="text-sm font-bold text-blue-800">
+              {semesters.reduce((acc, s) => acc + (s.totalBooks || 0), 0)}
+            </p>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-2 text-center border border-purple-100">
+            <p className="text-xs text-purple-700 font-semibold">Progress</p>
+            <p className="text-sm font-bold text-purple-800">
+              {Math.round((semesters.filter(s => s.totalBooks > 0).length / 8) * 100)}%
+            </p>
+          </div>
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg p-2 text-center border border-orange-100">
+            <p className="text-xs text-orange-700 font-semibold">Status</p>
+            <p className="text-sm font-bold text-orange-800">
+              {semesters.length === 8 ? '✅ Complete' : '📈 Active'}
+            </p>
+          </div>
+        </div>
+
         {semesters.length === 8 && (
-          <div className="mt-3 flex items-center justify-center gap-2">
-            <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full flex items-center gap-1">
+          <div className="mt-3 flex items-center justify-center gap-2 animate-pulse">
+            <span className="text-xs bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 px-4 py-1.5 rounded-full flex items-center gap-1.5 font-medium shadow-sm">
               <FiCheckCircle className="text-sm" />
               All 8 semesters available
             </span>
@@ -298,10 +394,10 @@ const Home = () => {
           <div className="mt-3">
             <Link
               to={`/program/${programId}`}
-              className="block w-full px-4 py-2.5 bg-gradient-to-r from-green-50 to-orange-50 rounded-lg text-sm font-medium text-green-700 hover:from-green-100 hover:to-orange-100 transition-all text-center border-2 border-dashed border-green-200 flex items-center justify-center gap-2"
+              className="block w-full px-4 py-3 bg-gradient-to-r from-green-50 to-orange-50 hover:from-green-100 hover:to-orange-100 rounded-xl text-sm font-semibold text-green-700 transition-all duration-300 text-center border-2 border-dashed border-green-200 hover:border-green-400 flex items-center justify-center gap-2 group"
             >
-              View All {semesters.length} Semesters
-              <FiArrowRight className="w-4 h-4" />
+              <span>View All {semesters.length} Semesters</span>
+              <FiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         )}
@@ -566,7 +662,7 @@ const Home = () => {
                     {program.description}
                   </p>
                   
-                  {/* Semesters Grid */}
+                  {/* Enhanced Semesters Grid */}
                   {renderSemesters(program.semesters, program._id)}
                 </div>
               </div>

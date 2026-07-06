@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import API from '../../services/api';
+import { FiX } from 'react-icons/fi';
 
 const ChapterNotes = () => {
   const { chapterId } = useParams();
@@ -11,6 +12,10 @@ const ChapterNotes = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFiles, setUploadingFiles] = useState([]);
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -23,8 +28,6 @@ const ChapterNotes = () => {
     isImportant: false,
     order: 0,
   });
-  const [saving, setSaving] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     fetchChapterAndNotes();
@@ -44,74 +47,145 @@ const ChapterNotes = () => {
     }
   };
 
-  const handleFileUpload = (e) => {
+  // Handle file selection and convert to base64
+  const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
-    const newAttachments = files.map(file => {
-      const reader = new FileReader();
-      return new Promise((resolve) => {
-        reader.onloadend = () => {
-          resolve({
-            type: file.type.startsWith('image/') ? 'image' :
-                  file.type === 'application/pdf' ? 'pdf' :
-                  file.type.startsWith('video/') ? 'video' : 'file',
-            url: reader.result,
+    if (files.length === 0) return;
+
+    // Validate files
+    const validFiles = files.filter(file => {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`${file.name} is too large. Maximum size is 10MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setUploadingFiles(prev => [...prev, ...validFiles.map(f => f.name)]);
+    
+    try {
+      // Convert files to base64
+      const processedFiles = await Promise.all(
+        validFiles.map(async (file) => {
+          const base64 = await fileToBase64(file);
+          
+          // Determine file type
+          let type = 'file';
+          if (file.type.startsWith('image/')) {
+            type = 'image';
+          } else if (file.type === 'application/pdf') {
+            type = 'pdf';
+          } else if (file.type.startsWith('video/')) {
+            type = 'video';
+          }
+
+          return {
+            url: base64,
+            type: type,
             name: file.name,
             size: file.size,
             mimeType: file.type,
-          });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+          };
+        })
+      );
+      
+      // Update form data with processed files
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, ...processedFiles]
+      }));
 
-    Promise.all(newAttachments).then((attachments) => {
-      setFormData({ ...formData, attachments: [...formData.attachments, ...attachments] });
+      // If it's a PDF, automatically set pdfUrl
+      const pdfFiles = processedFiles.filter(f => f.type === 'pdf');
+      if (pdfFiles.length > 0 && !formData.pdfUrl) {
+        setFormData(prev => ({
+          ...prev,
+          pdfUrl: pdfFiles[0].url
+        }));
+      }
+
+    } catch (error) {
+      console.error('File processing error:', error);
+      alert('Failed to process files. Please try again.');
+    } finally {
+      setUploadingFiles([]);
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  // Helper: Convert file to base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
     });
   };
 
   const handleRemoveAttachment = (index) => {
-    const newAttachments = formData.attachments.filter((_, i) => i !== index);
-    setFormData({ ...formData, attachments: newAttachments });
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  // Validate required fields
-  if (!formData.title || formData.title.trim() === '') {
-    alert('Please enter a note title');
-    return;
-  }
-  
-  setSaving(true);
-  setUploadProgress(0);
-  
-  try {
-    // Prepare the data for submission
-    const submitData = {
-      chapterId: chapterId,
-      title: formData.title.trim(),
-      description: formData.description || '',
-      content: formData.content || '',
-      attachments: formData.attachments || [],
-      videoUrl: formData.videoUrl || '',
-      pdfUrl: formData.pdfUrl || '',
-      links: formData.links || [],
-      tags: formData.tags || [],
-      isImportant: formData.isImportant || false,
-      order: parseInt(formData.order) || 0,
-    };
+    e.preventDefault();
     
-    console.log('📤 Submitting note data:', submitData);
-    
-    if (editingNote) {
-      await API.put(`/api/admin/notes/${editingNote._id}`, submitData);
-    } else {
-      await API.post('/api/admin/notes', submitData);
+    if (!formData.title || formData.title.trim() === '') {
+      alert('Please enter a note title');
+      return;
     }
     
-    setShowModal(false);
-    setEditingNote(null);
+    setSaving(true);
+    setUploadProgress(0);
+    
+    try {
+      // Prepare the data for submission
+      const submitData = {
+        chapterId: chapterId,
+        title: formData.title.trim(),
+        description: formData.description || '',
+        content: formData.content || '',
+        attachments: formData.attachments || [],
+        videoUrl: formData.videoUrl || '',
+        pdfUrl: formData.pdfUrl || '',
+        links: formData.links || [],
+        tags: formData.tags || [],
+        isImportant: formData.isImportant || false,
+        order: parseInt(formData.order) || 0,
+      };
+      
+      console.log('📤 Submitting note data:', submitData);
+      
+      let response;
+      if (editingNote) {
+        response = await API.put(`/api/admin/notes/${editingNote._id}`, submitData);
+      } else {
+        response = await API.post('/api/admin/notes', submitData);
+      }
+      
+      if (response.data.success) {
+        setShowModal(false);
+        setEditingNote(null);
+        resetForm();
+        fetchChapterAndNotes();
+        setUploadProgress(100);
+      }
+    } catch (error) {
+      console.error('❌ Failed to save note:', error);
+      console.error('Error response:', error.response?.data);
+      alert(error.response?.data?.message || 'Failed to save note');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetForm = () => {
     setFormData({
       title: '',
       description: '',
@@ -124,19 +198,9 @@ const ChapterNotes = () => {
       isImportant: false,
       order: 0,
     });
-    fetchChapterAndNotes();
-  } catch (error) {
-    console.error('❌ Failed to save note:', error);
-    console.error('Error response:', error.response?.data);
-    
-    // Show detailed error message
-    const errorMessage = error.response?.data?.message || 'Failed to save note';
-    alert(errorMessage);
-  } finally {
-    setSaving(false);
-    setUploadProgress(100);
-  }
-};
+    setUploadProgress(0);
+    setUploadingFiles([]);
+  };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this note?')) return;
@@ -180,18 +244,7 @@ const ChapterNotes = () => {
 
   const openCreateModal = () => {
     setEditingNote(null);
-    setFormData({
-      title: '',
-      description: '',
-      content: '',
-      attachments: [],
-      videoUrl: '',
-      pdfUrl: '',
-      links: [{ title: '', url: '' }],
-      tags: [''],
-      isImportant: false,
-      order: 0,
-    });
+    resetForm();
     setShowModal(true);
   };
 
@@ -218,13 +271,11 @@ const ChapterNotes = () => {
     return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
-  const getFileIcon = (type) => {
-    switch (type) {
-      case 'image': return '🖼️';
-      case 'pdf': return '📄';
-      case 'video': return '🎬';
-      default: return '📎';
-    }
+  const getFileIcon = (type, format) => {
+    if (type === 'image') return '🖼️';
+    if (type === 'pdf' || (type === 'raw' && format === 'pdf')) return '📄';
+    if (type === 'video') return '🎬';
+    return '📎';
   };
 
   if (loading) {
@@ -297,19 +348,60 @@ const ChapterNotes = () => {
                       </div>
                     )}
 
+                    {/* PDF Display */}
+                    {note.pdfUrl && (
+                      <div className="mt-3">
+                        <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
+                          <div className="flex items-center justify-between flex-wrap gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                                <span className="text-xl">📄</span>
+                              </div>
+                              <div>
+                                <p className="text-white font-medium">PDF Document</p>
+                                <p className="text-gray-400 text-xs truncate max-w-xs">{note.pdfUrl}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={note.pdfUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                              >
+                                View PDF
+                              </a>
+                              <a
+                                href={note.pdfUrl}
+                                download
+                                className="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors text-sm"
+                              >
+                                Download
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Attachments */}
                     {note.attachments?.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {note.attachments.map((att, i) => (
-                          <a
-                            key={i}
-                            href={att.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-3 py-1.5 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors text-sm text-gray-300"
-                          >
-                            {getFileIcon(att.type)} {att.name} ({formatFileSize(att.size)})
-                          </a>
+                          <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">
+                            <span>{getFileIcon(att.type, att.format)}</span>
+                            <a
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-gray-300 hover:text-white"
+                            >
+                              {att.name || 'File'}
+                            </a>
+                            {att.size && (
+                              <span className="text-xs text-gray-400">({formatFileSize(att.size)})</span>
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}
@@ -321,22 +413,8 @@ const ChapterNotes = () => {
                       </div>
                     )}
 
-                    {/* PDF */}
-                    {note.pdfUrl && (
-                      <div className="mt-3">
-                        <a
-                          href={note.pdfUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
-                        >
-                          📄 View PDF
-                        </a>
-                      </div>
-                    )}
-
                     {/* Links */}
-                    {note.links?.length > 0 && note.links[0]?.url && (
+                    {note.links?.length > 0 && note.links.some(link => link.url) && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {note.links.map((link, i) => (
                           link.url && (
@@ -355,7 +433,7 @@ const ChapterNotes = () => {
                     )}
 
                     {/* Tags */}
-                    {note.tags?.length > 0 && note.tags[0] && (
+                    {note.tags?.length > 0 && note.tags.some(tag => tag) && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {note.tags.map((tag, i) => (
                           tag && <span key={i} className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded"># {tag}</span>
@@ -447,40 +525,58 @@ const ChapterNotes = () => {
                 />
               </div>
 
-              {/* File Upload */}
+              {/* File Upload - Sends to Backend */}
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">Upload Files (Images, PDFs, Videos, etc.)</label>
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500/20 file:text-orange-400 hover:file:bg-orange-500/30"
-                />
-                {uploadProgress > 0 && uploadProgress < 100 && (
-                  <div className="mt-2 w-full bg-gray-700 rounded-full h-2">
-                    <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
-                  </div>
-                )}
-                {formData.attachments.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
+                <label className="block text-gray-300 text-sm font-medium mb-1">Upload Files (PDFs, Images, Videos)</label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500/20 file:text-orange-400 hover:file:bg-orange-500/30 cursor-pointer"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi"
+                    disabled={uploadingFiles.length > 0}
+                  />
+                  {uploadingFiles.length > 0 && (
+                    <div className="absolute inset-0 bg-gray-800/80 flex items-center justify-center rounded-lg">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+                        <p className="text-sm text-gray-300 mt-2">Processing {uploadingFiles.length} files...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Upload PDFs, images, videos. PDFs will be automatically set as the main PDF.</p>
+              </div>
+
+              {/* Uploaded Attachments Preview */}
+              {formData.attachments.length > 0 && (
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">Uploaded Files</label>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
                     {formData.attachments.map((att, index) => (
-                      <div key={index} className="flex items-center gap-2 bg-gray-700 px-3 py-1.5 rounded-lg">
-                        <span>{getFileIcon(att.type)}</span>
-                        <span className="text-sm text-gray-300">{att.name}</span>
+                      <div key={index} className="flex items-center justify-between bg-gray-700 px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-gray-300">
+                          <span>{getFileIcon(att.type)}</span>
+                          <span>{att.name}</span>
+                          {att.size && (
+                            <span className="text-xs text-gray-400">({formatFileSize(att.size)})</span>
+                          )}
+                        </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveAttachment(index)}
-                          className="text-red-400 hover:text-red-300"
+                          className="text-red-400 hover:text-red-300 transition-colors"
                         >
-                          ×
+                          <FiX className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Video Upload */}
+              {/* Video URL - Can be a URL or uploaded file */}
               <div>
                 <label className="block text-gray-300 text-sm font-medium mb-1">Video URL</label>
                 <input
@@ -488,12 +584,12 @@ const ChapterNotes = () => {
                   value={formData.videoUrl}
                   onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Upload video or enter URL..."
+                  placeholder="Paste video URL from YouTube, Vimeo, or upload a video file above"
                 />
-                <p className="text-xs text-gray-400 mt-1">Upload video files or paste a video URL</p>
+                <p className="text-xs text-gray-400 mt-1">Enter a video URL or upload a video file above</p>
               </div>
 
-              {/* PDF Upload */}
+              {/* PDF URL - Auto-filled from upload */}
               <div>
                 <label className="block text-gray-300 text-sm font-medium mb-1">PDF URL</label>
                 <input
@@ -501,9 +597,10 @@ const ChapterNotes = () => {
                   value={formData.pdfUrl}
                   onChange={(e) => setFormData({ ...formData, pdfUrl: e.target.value })}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Upload PDF or enter URL..."
+                  placeholder="PDF URL from upload or paste manually"
+                  readOnly={formData.attachments.some(a => a.type === 'pdf')}
                 />
-                <p className="text-xs text-gray-400 mt-1">Upload PDF files or paste a PDF URL</p>
+                <p className="text-xs text-gray-400 mt-1">Automatically filled when you upload a PDF</p>
               </div>
 
               {/* Links */}
@@ -531,7 +628,7 @@ const ChapterNotes = () => {
                         onClick={() => handleRemoveLink(index)}
                         className="px-3 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
                       >
-                        ×
+                        <FiX className="w-4 h-4" />
                       </button>
                     )}
                   </div>
@@ -563,7 +660,7 @@ const ChapterNotes = () => {
                         onClick={() => handleRemoveTag(index)}
                         className="px-3 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
                       >
-                        ×
+                        <FiX className="w-4 h-4" />
                       </button>
                     )}
                   </div>
@@ -598,10 +695,10 @@ const ChapterNotes = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-700 transition-colors disabled:opacity-50"
+                  disabled={saving || uploadingFiles.length > 0}
+                  className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {saving ? 'Saving...' : editingNote ? 'Update' : 'Add Note'}
+                  {saving ? 'Saving...' : uploadingFiles.length > 0 ? 'Processing...' : editingNote ? 'Update' : 'Add Note'}
                 </button>
               </div>
             </form>

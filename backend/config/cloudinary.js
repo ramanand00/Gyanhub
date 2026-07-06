@@ -1,3 +1,4 @@
+// config/cloudinary.js
 const cloudinary = require("cloudinary").v2;
 
 cloudinary.config({
@@ -6,4 +7,66 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-module.exports = cloudinary;
+// Upload file to Cloudinary
+const uploadFile = async (file, options = {}) => {
+  try {
+    // Determine resource type based on file
+    let resourceType = 'auto';
+    if (options.resourceType) {
+      resourceType = options.resourceType;
+    } else if (file.mimetype?.startsWith('video/')) {
+      resourceType = 'video';
+    } else if (file.mimetype === 'application/pdf') {
+      resourceType = 'raw';
+    } else if (file.mimetype?.startsWith('image/')) {
+      resourceType = 'image';
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      const uploadOptions = {
+        folder: options.folder || 'uploads',
+        resource_type: resourceType,
+        public_id: options.publicId,
+        use_filename: true,
+        unique_filename: true,
+        ...options
+      };
+
+      const uploadStream = cloudinary.uploader.upload_stream(
+        uploadOptions,
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+
+      uploadStream.end(file.buffer);
+    });
+
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      type: resourceType,
+      size: result.bytes,
+      format: result.format,
+    };
+  } catch (error) {
+    console.error('Cloudinary upload error:', error);
+    throw error;
+  }
+};
+
+// Delete file from Cloudinary
+const deleteFile = async (publicId, resourceType = 'image') => {
+  try {
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+    });
+    return result;
+  } catch (error) {
+    console.error('Cloudinary delete error:', error);
+    throw error;
+  }
+};
+
+module.exports = { cloudinary, uploadFile, deleteFile };

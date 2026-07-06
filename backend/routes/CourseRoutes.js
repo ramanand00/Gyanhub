@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
+const multer = require("multer");
 const Course = require("../models/Course");
 const Module = require("../models/Module");
 const Lesson = require("../models/Lesson");
@@ -11,7 +12,49 @@ const Enrollment = require("../models/Enrollment");
 const User = require("../models/User");
 const { authenticate, optionalAuth } = require("../middleware/auth");
 const cloudinary = require("../config/cloudinary");
+const { uploadFile, deleteFile } = require("../config/cloudinary");
 const NotificationHelpers = require("../utils/notificationHelpers");
+
+// ==================== MULTER CONFIGURATION ====================
+// Use memory storage for Cloudinary uploads
+const storage = multer.memoryStorage();
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'video/mp4',
+    'video/webm',
+    'video/ogg',
+    'audio/mpeg',
+    'audio/ogg',
+    'audio/wav',
+  ];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`File type ${file.mimetype} is not allowed`), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max
+  }
+});
 
 // ==================== GET ALL PUBLISHED COURSES ====================
 router.get("/published", optionalAuth, async (req, res) => {
@@ -23,17 +66,14 @@ router.get("/published", optionalAuth, async (req, res) => {
       status: 'published'
     };
     
-    // Filter by category
     if (category && category !== 'all') {
       query.category = category;
     }
     
-    // Filter by level
     if (level && level !== 'all') {
       query.level = level;
     }
     
-    // Search by title or description
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -42,7 +82,6 @@ router.get("/published", optionalAuth, async (req, res) => {
       ];
     }
     
-    // Sort options
     let sortOption = { createdAt: -1 };
     if (sort === 'popular') {
       sortOption = { enrollments: -1 };
@@ -64,7 +103,6 @@ router.get("/published", optionalAuth, async (req, res) => {
     
     const total = await Course.countDocuments(query);
     
-    // Calculate average rating for each course
     const coursesWithRating = courses.map(course => {
       const courseObj = course.toObject();
       const totalReviews = course.reviews?.length || 0;
@@ -751,7 +789,7 @@ router.post("/courses", authenticate, async (req, res) => {
 
     let thumbnailUrl = thumbnail;
     if (thumbnail && thumbnail.startsWith('data:image')) {
-      const uploadResponse = await cloudinary.uploader.upload(thumbnail, {
+      const uploadResponse = await cloudinary.cloudinary.uploader.upload(thumbnail, {
         folder: 'course_thumbnails',
         width: 1200,
         height: 630,
@@ -834,7 +872,7 @@ router.put("/courses/:courseId", authenticate, async (req, res) => {
     const updates = req.body;
     
     if (updates.thumbnail && updates.thumbnail.startsWith('data:image')) {
-      const uploadResponse = await cloudinary.uploader.upload(updates.thumbnail, {
+      const uploadResponse = await cloudinary.cloudinary.uploader.upload(updates.thumbnail, {
         folder: 'course_thumbnails',
         width: 1200,
         height: 630,
@@ -996,7 +1034,6 @@ router.delete("/courses/:courseId", authenticate, async (req, res) => {
 
 // ==================== MODULE MANAGEMENT ====================
 
-// Create module
 router.post("/modules", authenticate, async (req, res) => {
   try {
     const { courseId, title, description, order } = req.body;
@@ -1049,7 +1086,6 @@ router.post("/modules", authenticate, async (req, res) => {
   }
 });
 
-// Update module
 router.put("/modules/:moduleId", authenticate, async (req, res) => {
   try {
     const { moduleId } = req.params;
@@ -1095,7 +1131,6 @@ router.put("/modules/:moduleId", authenticate, async (req, res) => {
   }
 });
 
-// Delete module
 router.delete("/modules/:moduleId", authenticate, async (req, res) => {
   try {
     const { moduleId } = req.params;
@@ -1148,7 +1183,6 @@ router.delete("/modules/:moduleId", authenticate, async (req, res) => {
 
 // ==================== LESSON MANAGEMENT ====================
 
-// Create lesson
 router.post("/lessons", authenticate, async (req, res) => {
   try {
     const {
@@ -1187,12 +1221,19 @@ router.post("/lessons", authenticate, async (req, res) => {
 
     let videoUrl = content?.videoUrl || '';
     if (content?.videoUrl && content.videoUrl.startsWith('data:video')) {
-      const uploadResponse = await cloudinary.uploader.upload(content.videoUrl, {
+      const uploadResponse = await cloudinary.cloudinary.uploader.upload(content.videoUrl, {
         resource_type: 'video',
         folder: 'course_videos',
         quality: 'auto',
       });
       videoUrl = uploadResponse.secure_url;
+    }
+
+    // Process any files that were uploaded but not saved
+    let processedFiles = content?.files || [];
+    if (content?.files && content.files.length > 0) {
+      // Files are already processed from the upload endpoint
+      processedFiles = content.files;
     }
 
     const lesson = new Lesson({
@@ -1206,6 +1247,7 @@ router.post("/lessons", authenticate, async (req, res) => {
         notes: content?.notes || '',
         pdfUrl: content?.pdfUrl || '',
         duration: content?.duration || 0,
+        files: processedFiles,
       },
       isFree: isFree || false,
       resources: resources || [],
@@ -1228,12 +1270,11 @@ router.post("/lessons", authenticate, async (req, res) => {
     console.error("Create lesson error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "Server error: " + error.message,
     });
   }
 });
 
-// Update lesson
 router.put("/lessons/:lessonId", authenticate, async (req, res) => {
   try {
     const { lessonId } = req.params;
@@ -1267,7 +1308,7 @@ router.put("/lessons/:lessonId", authenticate, async (req, res) => {
     const updates = req.body;
     
     if (updates.content?.videoUrl && updates.content.videoUrl.startsWith('data:video')) {
-      const uploadResponse = await cloudinary.uploader.upload(updates.content.videoUrl, {
+      const uploadResponse = await cloudinary.cloudinary.uploader.upload(updates.content.videoUrl, {
         resource_type: 'video',
         folder: 'course_videos',
         quality: 'auto',
@@ -1292,7 +1333,6 @@ router.put("/lessons/:lessonId", authenticate, async (req, res) => {
   }
 });
 
-// Delete lesson
 router.delete("/lessons/:lessonId", authenticate, async (req, res) => {
   try {
     const { lessonId } = req.params;
@@ -1323,6 +1363,24 @@ router.delete("/lessons/:lessonId", authenticate, async (req, res) => {
       });
     }
 
+    // Delete files from Cloudinary
+    if (lesson.content?.files && lesson.content.files.length > 0) {
+      for (const file of lesson.content.files) {
+        if (file.publicId) {
+          let resourceType = 'image';
+          if (file.type === 'video') resourceType = 'video';
+          else if (file.type === 'pdf' || file.type === 'document' || file.type === 'presentation' || file.type === 'spreadsheet') {
+            resourceType = 'raw';
+          }
+          try {
+            await deleteFile(file.publicId, resourceType);
+          } catch (err) {
+            console.log("Cloudinary delete error:", err);
+          }
+        }
+      }
+    }
+
     module.lessons = module.lessons.filter(l => l.toString() !== lesson._id.toString());
     await module.save();
 
@@ -1344,9 +1402,342 @@ router.delete("/lessons/:lessonId", authenticate, async (req, res) => {
   }
 });
 
+// ==================== FILE UPLOAD ROUTES (CLOUDINARY) ====================
+
+// Upload single file
+router.post("/lessons/:lessonId/upload", authenticate, upload.single('file'), async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded",
+      });
+    }
+
+    if (lessonId !== 'temp' && !mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lesson ID",
+      });
+    }
+
+    // Determine folder and resource type
+    let folder = 'course_files';
+    let resourceType = 'auto';
+    
+    if (req.file.mimetype.startsWith('image/')) {
+      folder = 'course_images';
+      resourceType = 'image';
+    } else if (req.file.mimetype.startsWith('video/')) {
+      folder = 'course_videos';
+      resourceType = 'video';
+    } else if (req.file.mimetype === 'application/pdf') {
+      folder = 'course_pdfs';
+      resourceType = 'raw';
+    } else if (req.file.mimetype.includes('word') || req.file.mimetype.includes('document')) {
+      folder = 'course_documents';
+      resourceType = 'raw';
+    } else if (req.file.mimetype.includes('presentation')) {
+      folder = 'course_presentations';
+      resourceType = 'raw';
+    } else if (req.file.mimetype.includes('spreadsheet') || req.file.mimetype.includes('excel')) {
+      folder = 'course_spreadsheets';
+      resourceType = 'raw';
+    }
+
+    // Upload to Cloudinary
+    const result = await uploadFile(req.file, {
+      folder: folder,
+      resourceType: resourceType,
+      use_filename: true,
+      unique_filename: true,
+    });
+
+    let fileType = 'file';
+    if (req.file.mimetype.startsWith('image/')) fileType = 'image';
+    else if (req.file.mimetype.startsWith('video/')) fileType = 'video';
+    else if (req.file.mimetype === 'application/pdf') fileType = 'pdf';
+    else if (req.file.mimetype.includes('word') || req.file.mimetype.includes('document')) fileType = 'document';
+    else if (req.file.mimetype.includes('presentation')) fileType = 'presentation';
+    else if (req.file.mimetype.includes('spreadsheet') || req.file.mimetype.includes('excel')) fileType = 'spreadsheet';
+
+    const fileData = {
+      filename: result.publicId,
+      originalName: req.file.originalname,
+      url: result.url,
+      type: fileType,
+      size: result.size,
+      publicId: result.publicId,
+      uploadedAt: new Date(),
+    };
+
+    // If lesson exists, save to database
+    if (lessonId !== 'temp') {
+      const lesson = await Lesson.findById(lessonId);
+      if (lesson) {
+        const module = await Module.findById(lesson.moduleId);
+        const course = await Course.findById(module.courseId);
+        if (course.instructor.toString() === req.user._id.toString()) {
+          if (!lesson.content.files) {
+            lesson.content.files = [];
+          }
+          lesson.content.files.push(fileData);
+          await lesson.save();
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "File uploaded successfully",
+      file: fileData,
+    });
+  } catch (error) {
+    console.error("Upload file error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Upload multiple files
+router.post("/lessons/:lessonId/upload-multiple", authenticate, upload.array('files', 10), async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No files uploaded",
+      });
+    }
+
+    const uploadedFiles = [];
+    let lesson = null;
+    let isNewLesson = false;
+
+    // If lessonId is 'temp', we're creating a new lesson
+    if (lessonId === 'temp') {
+      isNewLesson = true;
+    } else if (!mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lesson ID",
+      });
+    } else {
+      lesson = await Lesson.findById(lessonId);
+      if (lesson) {
+        const module = await Module.findById(lesson.moduleId);
+        const course = await Course.findById(module.courseId);
+        if (course.instructor.toString() !== req.user._id.toString()) {
+          return res.status(403).json({
+            success: false,
+            message: "You don't have permission to upload files for this lesson",
+          });
+        }
+      }
+    }
+
+    for (const file of req.files) {
+      try {
+        // Determine folder and resource type
+        let folder = 'course_files';
+        let resourceType = 'auto';
+        
+        if (file.mimetype.startsWith('image/')) {
+          folder = 'course_images';
+          resourceType = 'image';
+        } else if (file.mimetype.startsWith('video/')) {
+          folder = 'course_videos';
+          resourceType = 'video';
+        } else if (file.mimetype === 'application/pdf') {
+          folder = 'course_pdfs';
+          resourceType = 'raw';
+        } else if (file.mimetype.includes('word') || file.mimetype.includes('document')) {
+          folder = 'course_documents';
+          resourceType = 'raw';
+        } else if (file.mimetype.includes('presentation')) {
+          folder = 'course_presentations';
+          resourceType = 'raw';
+        } else if (file.mimetype.includes('spreadsheet') || file.mimetype.includes('excel')) {
+          folder = 'course_spreadsheets';
+          resourceType = 'raw';
+        }
+
+        // Upload to Cloudinary
+        const result = await uploadFile(file, {
+          folder: folder,
+          resourceType: resourceType,
+          use_filename: true,
+          unique_filename: true,
+        });
+
+        let fileType = 'file';
+        if (file.mimetype.startsWith('image/')) fileType = 'image';
+        else if (file.mimetype.startsWith('video/')) fileType = 'video';
+        else if (file.mimetype === 'application/pdf') fileType = 'pdf';
+        else if (file.mimetype.includes('word') || file.mimetype.includes('document')) fileType = 'document';
+        else if (file.mimetype.includes('presentation')) fileType = 'presentation';
+        else if (file.mimetype.includes('spreadsheet') || file.mimetype.includes('excel')) fileType = 'spreadsheet';
+
+        const fileData = {
+          filename: result.publicId,
+          originalName: file.originalname,
+          url: result.url,
+          type: fileType,
+          size: result.size,
+          publicId: result.publicId,
+          uploadedAt: new Date(),
+        };
+
+        uploadedFiles.push(fileData);
+
+        // Save to lesson if not a new lesson
+        if (!isNewLesson && lesson) {
+          if (!lesson.content.files) {
+            lesson.content.files = [];
+          }
+          lesson.content.files.push(fileData);
+        }
+      } catch (uploadError) {
+        console.error('Upload error for file:', file.originalname, uploadError);
+        // Continue with other files
+      }
+    }
+
+    // Save lesson if not a new lesson
+    if (!isNewLesson && lesson) {
+      await lesson.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `${uploadedFiles.length} files uploaded successfully`,
+      files: uploadedFiles,
+      isNewLesson: isNewLesson,
+    });
+  } catch (error) {
+    console.error("Upload multiple files error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Delete file
+router.delete("/lessons/:lessonId/files/:fileIndex", authenticate, async (req, res) => {
+  try {
+    const { lessonId, fileIndex } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lesson ID",
+      });
+    }
+
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const module = await Module.findById(lesson.moduleId);
+    const course = await Course.findById(module.courseId);
+    if (course.instructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to delete files from this lesson",
+      });
+    }
+
+    const index = parseInt(fileIndex);
+    if (isNaN(index) || index < 0 || index >= lesson.content.files.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid file index",
+      });
+    }
+
+    const file = lesson.content.files[index];
+    
+    // Delete from Cloudinary
+    if (file.publicId) {
+      let resourceType = 'image';
+      if (file.type === 'video') resourceType = 'video';
+      else if (file.type === 'pdf' || file.type === 'document' || file.type === 'presentation' || file.type === 'spreadsheet') {
+        resourceType = 'raw';
+      }
+      await deleteFile(file.publicId, resourceType);
+    }
+
+    // Remove file from lesson
+    lesson.content.files.splice(index, 1);
+    await lesson.save();
+
+    res.status(200).json({
+      success: true,
+      message: "File deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete file error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Get all files for a lesson
+router.get("/lessons/:lessonId/files", authenticate, async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lesson ID",
+      });
+    }
+
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const module = await Module.findById(lesson.moduleId);
+    const course = await Course.findById(module.courseId);
+    if (course.instructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to view files from this lesson",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      files: lesson.content.files || [],
+    });
+  } catch (error) {
+    console.error("Get files error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
 // ==================== QUIZ MANAGEMENT ====================
 
-// Create quiz
 router.post("/quizzes", authenticate, async (req, res) => {
   try {
     const {
@@ -1411,7 +1802,6 @@ router.post("/quizzes", authenticate, async (req, res) => {
   }
 });
 
-// Update quiz
 router.put("/quizzes/:quizId", authenticate, async (req, res) => {
   try {
     const { quizId } = req.params;
@@ -1459,7 +1849,6 @@ router.put("/quizzes/:quizId", authenticate, async (req, res) => {
   }
 });
 
-// Delete quiz
 router.delete("/quizzes/:quizId", authenticate, async (req, res) => {
   try {
     const { quizId } = req.params;
@@ -1537,7 +1926,7 @@ router.get("/my-courses", authenticate, async (req, res) => {
   }
 });
 
-// ==================== GET COURSE STATISTICS (FOR CREATOR) ====================
+// ==================== GET COURSE STATISTICS ====================
 router.get("/course-stats/:courseId", authenticate, async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -1596,9 +1985,7 @@ router.get("/course-stats/:courseId", authenticate, async (req, res) => {
   }
 });
 
-// ==================== ADD REVIEW TO COURSE ====================// routes/CourseRoutes.js - Update the add review route
-
-// Add review to course
+// ==================== ADD REVIEW ====================
 router.post("/courses/:courseId/review", authenticate, async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -1619,7 +2006,6 @@ router.post("/courses/:courseId/review", authenticate, async (req, res) => {
       });
     }
 
-    // Check if user is enrolled
     const enrollment = await Enrollment.findOne({
       user: req.user._id,
       course: courseId,
@@ -1632,7 +2018,6 @@ router.post("/courses/:courseId/review", authenticate, async (req, res) => {
       });
     }
 
-    // Check if user already reviewed
     const existingReview = course.reviews.find(
       r => r.userId.toString() === req.user._id.toString()
     );
@@ -1651,14 +2036,11 @@ router.post("/courses/:courseId/review", authenticate, async (req, res) => {
       createdAt: new Date(),
     });
 
-    // Update course rating
     const totalReviews = course.reviews.length;
     const avgRating = course.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;
     course.rating = Math.round(avgRating * 10) / 10;
 
     await course.save();
-
-    // Populate the user data for the new review
     await course.populate('reviews.userId', 'name profilePicture');
 
     const newReview = course.reviews[course.reviews.length - 1];
@@ -1677,4 +2059,5 @@ router.post("/courses/:courseId/review", authenticate, async (req, res) => {
     });
   }
 });
+
 module.exports = router;

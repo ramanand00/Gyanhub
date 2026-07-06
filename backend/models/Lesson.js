@@ -38,9 +38,21 @@ const lessonSchema = new mongoose.Schema(
         type: String,
         default: '',
       },
+      // File upload fields
+      files: [{
+        filename: String,
+        originalName: String,
+        url: String,
+        type: String,
+        size: Number,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      }],
       duration: {
         type: Number,
-        default: 0, // in minutes
+        default: 0,
       },
     },
     isPublished: {
@@ -54,14 +66,12 @@ const lessonSchema = new mongoose.Schema(
     resources: [{
       name: String,
       url: String,
-      type: String, // 'pdf', 'doc', 'ppt', 'link', etc.
+      type: String,
     }],
-    // Quiz specific
     quiz: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Quiz',
     },
-    // Assignment specific
     assignment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Assignment',
