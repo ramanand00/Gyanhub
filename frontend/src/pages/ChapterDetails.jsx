@@ -365,12 +365,6 @@ const ChapterDetails = () => {
     }
   };
 
-  const getChapterProgress = (chapter) => {
-    if (chapter.isCompleted) return 100;
-    if (chapter.notes && chapter.notes.length > 0) return 60;
-    return 0;
-  };
-
   const toggleVideoExpand = (noteId) => {
     setExpandedVideo(expandedVideo === noteId ? null : noteId);
   };
@@ -398,7 +392,6 @@ const ChapterDetails = () => {
   // ============================================
   const renderChapterItem = (chapter, index, isSubChapter = false) => {
     const isActive = chapter._id === chapterId;
-    const progress = getChapterProgress(chapter);
     const hasSubChapters = chapter.subChapters && chapter.subChapters.length > 0;
     const isExpanded = expandedChapters.includes(chapter._id);
     
@@ -427,26 +420,14 @@ const ChapterDetails = () => {
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className={`font-medium truncate ${isActive ? 'text-white' : ''}`}>
-                {isSubChapter ? '' : `Ch ${chapter.chapterNumber || index + 1}:`} {chapter.title}
-              </span>
-              {chapter.isCompleted && (
-                <FiCheckCircle className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-green-500'}`} />
-              )}
-            </div>
-          </div>
+  <div className="flex items-center gap-1.5">
+    <span className={`font-medium truncate ${isActive ? 'text-white' : ''}`}>
+      {chapter.title}
+    </span>
+  </div>
+</div>
 
-          {!isSubChapter && progress > 0 && !isActive && (
-            <div className="flex-shrink-0">
-              <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-green-500 to-orange-500 rounded-full transition-all duration-500"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          )}
+          {/* REMOVED: Progress bar */}
 
           {hasSubChapters && !isSubChapter && (
             <button
@@ -1048,20 +1029,34 @@ const ChapterDetails = () => {
             )}
           </AnimatePresence>
 
-          {/* Main Content */}
+          {/* Main Content - Notes first, then Chapter Info */}
           <div className="flex-1 min-w-0">
-            {/* Chapter Info */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+            {/* NOTES SECTION - AT TOP */}
+            {notes.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-md p-12 text-center mb-8">
+                <div className="text-6xl mb-4">📄</div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">No Notes Available</h3>
+                <p className="text-gray-600">Notes for this chapter will be added soon.</p>
+                <button
+                  onClick={fetchChapterDetails}
+                  className="mt-4 px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-colors shadow-md hover:shadow-lg"
+                >
+                  Refresh
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-8 mb-8">
+                {notes.map((note, noteIndex) => renderNoteContent(note, noteIndex))}
+              </div>
+            )}
+
+            {/* CHAPTER INFO SECTION - AT BOTTOM (REMOVED COMPLETED BADGE) */}
+            <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <span className="text-sm bg-gradient-to-r from-green-100 to-orange-100 text-gray-700 px-3 py-1 rounded-full font-medium">
                   Chapter {chapter.chapterNumber}
                 </span>
-                {chapter.isCompleted && (
-                  <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium flex items-center gap-1">
-                    <FiCheckCircle className="w-4 h-4" />
-                    Completed
-                  </span>
-                )}
+                {/* REMOVED: Completed badge */}
               </div>
 
               <h2 className="text-2xl font-bold text-gray-800 mb-3">{chapter.title}</h2>
@@ -1102,25 +1097,6 @@ const ChapterDetails = () => {
                 </div>
               )}
             </div>
-
-            {/* Notes with Video, PDF, and Attachments */}
-            {notes.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-md p-12 text-center">
-                <div className="text-6xl mb-4">📄</div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">No Notes Available</h3>
-                <p className="text-gray-600">Notes for this chapter will be added soon.</p>
-                <button
-                  onClick={fetchChapterDetails}
-                  className="mt-4 px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-colors shadow-md hover:shadow-lg"
-                >
-                  Refresh
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {notes.map((note, noteIndex) => renderNoteContent(note, noteIndex))}
-              </div>
-            )}
           </div>
         </div>
       </div>

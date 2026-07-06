@@ -176,13 +176,12 @@ const ProgramDetails = () => {
   };
 
   const getProgramStats = () => {
-    if (!program) return { totalBooks: 0, totalStudents: 0, totalSemesters: 0, completionRate: 0 };
+    if (!program) return { totalBooks: 0, totalStudents: 0, totalSemesters: 0 };
     const totalBooks = semesters.reduce((acc, s) => acc + (s.totalBooks || 0), 0);
     return {
       totalBooks,
       totalStudents: program.students || Math.floor(Math.random() * 500) + 100,
       totalSemesters: semesters.length,
-      completionRate: Math.round((semesters.filter(s => s.totalBooks > 0).length / 8) * 100),
     };
   };
 
@@ -332,9 +331,7 @@ const ProgramDetails = () => {
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-orange-600">
               <div className="absolute inset-0 bg-black/20"></div>
-              {/* Animated gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-orange-500/20 animate-pulse"></div>
-              {/* Decorative shapes */}
               <div className="absolute top-20 right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl animate-float"></div>
               <div className="absolute bottom-20 left-20 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-float-delayed"></div>
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
@@ -380,10 +377,7 @@ const ProgramDetails = () => {
                     <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-medium border border-white/20">
                       {program.category}
                     </span>
-                    <span className="bg-green-500/30 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-medium border border-green-400/30 flex items-center gap-1">
-                      <FiCheckCircle className="w-3 h-3" />
-                      {stats.completionRate}% Complete
-                    </span>
+                    {/* REMOVED: Completion rate badge */}
                   </div>
                   <h1 className="text-4xl md:text-6xl font-bold text-white mb-3 leading-tight">
                     {program.title}
@@ -407,26 +401,6 @@ const ProgramDetails = () => {
                       <span>Updated {new Date(program.updatedAt).toLocaleDateString()}</span>
                     </div>
                   </div>
-                </div>
-                
-                {/* Action buttons */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-3 bg-white text-gray-800 rounded-xl font-semibold hover:shadow-xl transition-all flex items-center gap-2"
-                  >
-                    <FiPlay className="w-5 h-5" />
-                    Start Learning
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-3 bg-white/20 backdrop-blur-md text-white rounded-xl font-semibold hover:bg-white/30 transition-all border border-white/20 flex items-center gap-2"
-                  >
-                    <FiDownload className="w-5 h-5" />
-                    Download
-                  </motion.button>
                 </div>
               </motion.div>
             </div>
@@ -515,7 +489,7 @@ const ProgramDetails = () => {
 
               {/* Sidebar */}
               <div className="space-y-6">
-                {/* Stats Card */}
+                {/* Stats Card - REMOVED COMPLETION RATE */}
                 <div className="bg-gradient-to-br from-green-500 to-orange-500 rounded-2xl shadow-lg p-6 text-white">
                   <h4 className="text-sm font-medium text-white/80 mb-4">Program Statistics</h4>
                   <div className="space-y-4">
@@ -531,16 +505,7 @@ const ProgramDetails = () => {
                       <span className="text-white/70">Students</span>
                       <span className="text-2xl font-bold">{stats.totalStudents}+</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/70">Completion Rate</span>
-                      <span className="text-2xl font-bold">{stats.completionRate}%</span>
-                    </div>
-                    <div className="w-full bg-white/20 rounded-full h-2 mt-2">
-                      <div 
-                        className="bg-white h-2 rounded-full transition-all duration-1000"
-                        style={{ width: `${stats.completionRate}%` }}
-                      ></div>
-                    </div>
+                    {/* REMOVED: Completion Rate and Progress Bar */}
                   </div>
                 </div>
 
@@ -570,41 +535,7 @@ const ProgramDetails = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Semester Progress Overview */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800">Semester Progress</h3>
-                  <p className="text-sm text-gray-500">Track your progress through all semesters</p>
-                </div>
-                <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
-                  {semesters.filter(s => s.totalBooks > 0).length}/{semesters.length} Completed
-                </span>
-              </div>
-              <div className="flex gap-2">
-                {semesters.map((semester, idx) => (
-                  <div key={idx} className="flex-1">
-                    <div className="relative group">
-                      <div 
-                        className="h-3 rounded-full transition-all duration-500"
-                        style={{
-                          background: semester.totalBooks > 0 
-                            ? `linear-gradient(to right, ${getSemesterColor(idx)}, ${getSemesterColor(idx)}dd)`
-                            : '#E5E7EB',
-                          width: '100%'
-                        }}
-                      ></div>
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-xs rounded-lg px-2 py-1 whitespace-nowrap">
-                        Sem {semester.semesterNumber}
-                      </div>
-                    </div>
-                    <div className="text-center mt-1">
-                      <span className="text-xs text-gray-500">S{semester.semesterNumber}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* REMOVED: Semester Progress Overview section */}
 
             {/* Semesters Grid */}
             {semesters.length === 0 ? (
@@ -627,7 +558,6 @@ const ProgramDetails = () => {
                   const icon = getSemesterIcon(semester.semesterNumber);
                   const emoji = getSemesterEmoji(semester.semesterNumber);
                   const label = getSemesterLabel(semester.semesterNumber);
-                  const progress = Math.min((semester.totalBooks || 0) * 12.5, 100);
                   
                   return (
                     <motion.div
@@ -690,21 +620,7 @@ const ProgramDetails = () => {
                             </p>
                           )}
                           
-                          {/* Progress Bar */}
-                          <div className="mt-4">
-                            <div className="flex items-center justify-between text-xs text-white/60 mb-1">
-                              <span>Progress</span>
-                              <span>{Math.round(progress)}%</span>
-                            </div>
-                            <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                              <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${progress}%` }}
-                                transition={{ duration: 1, delay: 0.2 }}
-                                className="h-full bg-white/80 rounded-full"
-                              ></motion.div>
-                            </div>
-                          </div>
+                          {/* REMOVED: Progress Bar section */}
                           
                           {/* Footer */}
                           <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/20">
@@ -782,78 +698,28 @@ const ProgramDetails = () => {
         )}
 
         {/* Reviews Tab */}
-{activeTab === 'reviews' && (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-    className="bg-white rounded-2xl shadow-lg p-8"
-  >
-    <div className="flex flex-col items-center justify-center text-center py-12">
-      {/* Icon */}
-      <div className="w-20 h-20 rounded-full bg-yellow-100 flex items-center justify-center mb-6">
-        <FiStar className="w-10 h-10 text-yellow-500" />
-      </div>
-
-      {/* Heading */}
-      <h3 className="text-2xl font-bold text-gray-800 mb-3">
-        Reviews Coming Soon
-      </h3>
-
-      {/* Description */}
-      <p className="text-gray-600 max-w-md leading-relaxed">
-        We're working on a student review system. Soon you'll be able to
-        read genuine feedback from learners and share your own experience
-        after completing a course.
-      </p>
-
-      {/* Badge */}
-      <span className="mt-6 inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-700 font-medium">
-        🚀Feature Coming Soon...
-      </span>
-    </div>
-  </motion.div>
-)}
-        {/* Call to Action */}
-        {semesters.length > 0 && (
-          <motion.div 
+        {activeTab === 'reviews' && (
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-8 bg-gradient-to-r from-green-600 via-green-700 to-orange-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden"
+            transition={{ duration: 0.5 }}
+            className="bg-white rounded-2xl shadow-lg p-8"
           >
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
-            
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div>
-                <h3 className="text-2xl font-bold flex items-center gap-2">
-                  <FaUserGraduate className="text-3xl" />
-                  Ready to Start Your Journey?
-                </h3>
-                <p className="text-white/80 text-sm mt-1">
-                  Choose a semester above to begin your learning journey
-                </p>
+            <div className="flex flex-col items-center justify-center text-center py-12">
+              <div className="w-20 h-20 rounded-full bg-yellow-100 flex items-center justify-center mb-6">
+                <FiStar className="w-10 h-10 text-yellow-500" />
               </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-                  <FiBookOpen className="text-lg" />
-                  {stats.totalBooks} Books Available
-                </div>
-                <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-                  <FiUsers className="text-lg" />
-                  {stats.totalStudents}+ Students
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-white text-green-700 rounded-xl font-bold hover:shadow-xl transition-all flex items-center gap-2"
-                >
-                  <FiPlay className="w-5 h-5" />
-                  Start Learning
-                </motion.button>
-              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-3">
+                Reviews Coming Soon
+              </h3>
+              <p className="text-gray-600 max-w-md leading-relaxed">
+                We're working on a student review system. Soon you'll be able to
+                read genuine feedback from learners and share your own experience
+                after completing a course.
+              </p>
+              <span className="mt-6 inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-700 font-medium">
+                🚀 Feature Coming Soon...
+              </span>
             </div>
           </motion.div>
         )}
@@ -873,6 +739,25 @@ const ProgramDetails = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Custom CSS for animations */}
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        @keyframes float-delayed {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        .animate-float-delayed {
+          animation: float-delayed 8s ease-in-out infinite;
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   );
 };

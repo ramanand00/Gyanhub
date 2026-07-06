@@ -170,7 +170,7 @@ const Home = () => {
     return colors[index % colors.length];
   };
 
-  // Enhanced semester rendering function
+  // Enhanced semester rendering function - REMOVED PROGRESS INDICATORS
   const renderSemesters = (semesters, programId) => {
     if (!semesters || semesters.length === 0) {
       return (
@@ -323,18 +323,7 @@ const Home = () => {
                         </div>
                       </div>
                       
-                      {/* Bottom Info */}
-                      <div className="mt-3 flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white/60 rounded-full transition-all duration-500 group-hover:w-full"
-                            style={{ width: `${Math.min((semester.totalBooks || 0) * 12.5, 100)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-white/60 text-[10px] font-medium">
-                          {Math.min((semester.totalBooks || 0) * 12.5, 100)}%
-                        </span>
-                      </div>
+                      {/* REMOVED: Progress bar and percentage */}
                       
                       {/* Hover Effect - Arrow */}
                       <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
@@ -355,40 +344,9 @@ const Home = () => {
           ))}
         </div>
 
-        {/* Progress Summary */}
-        <div className="mt-4 grid grid-cols-4 gap-2">
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-2 text-center border border-green-100">
-            <p className="text-xs text-green-700 font-semibold">Total</p>
-            <p className="text-sm font-bold text-green-800">{semesters.length}</p>
-          </div>
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-2 text-center border border-blue-100">
-            <p className="text-xs text-blue-700 font-semibold">Books</p>
-            <p className="text-sm font-bold text-blue-800">
-              {semesters.reduce((acc, s) => acc + (s.totalBooks || 0), 0)}
-            </p>
-          </div>
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-2 text-center border border-purple-100">
-            <p className="text-xs text-purple-700 font-semibold">Progress</p>
-            <p className="text-sm font-bold text-purple-800">
-              {Math.round((semesters.filter(s => s.totalBooks > 0).length / 8) * 100)}%
-            </p>
-          </div>
-          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg p-2 text-center border border-orange-100">
-            <p className="text-xs text-orange-700 font-semibold">Status</p>
-            <p className="text-sm font-bold text-orange-800">
-              {semesters.length === 8 ? '✅ Complete' : '📈 Active'}
-            </p>
-          </div>
-        </div>
+        {/* REMOVED: Progress Summary section */}
 
-        {semesters.length === 8 && (
-          <div className="mt-3 flex items-center justify-center gap-2 animate-pulse">
-            <span className="text-xs bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 px-4 py-1.5 rounded-full flex items-center gap-1.5 font-medium shadow-sm">
-              <FiCheckCircle className="text-sm" />
-              All 8 semesters available
-            </span>
-          </div>
-        )}
+        
 
         {semesters.length > 8 && (
           <div className="mt-3">
@@ -438,7 +396,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Welcome Card - Styled like Contact page header */}
+        {/* Welcome Card */}
         <div className="bg-white rounded-xl shadow-xl p-6 mb-8 border-l-4 border-green-500 hover:shadow-2xl transition-shadow duration-200">
           <div className="flex items-start space-x-4">
             <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -483,7 +441,7 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Sorting Controls - Clean card design */}
+        {/* Sorting Controls */}
         <div className="bg-white rounded-xl shadow-md p-4 mb-8 flex flex-wrap items-center justify-between gap-4 border-t-4 border-orange-500 hover:shadow-lg transition-shadow duration-200">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -662,7 +620,7 @@ const Home = () => {
                     {program.description}
                   </p>
                   
-                  {/* Enhanced Semesters Grid */}
+                  {/* Enhanced Semesters Grid - NO PROGRESS INDICATORS */}
                   {renderSemesters(program.semesters, program._id)}
                 </div>
               </div>

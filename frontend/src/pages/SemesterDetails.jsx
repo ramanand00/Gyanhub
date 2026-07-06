@@ -36,9 +36,7 @@ import {
   FiGift,
   FiMapPin,
   FiList,
-  FiGrid as FiGridIcon,
-  FiSearch,
-  FiFilter
+  FiGrid as FiGridIcon
 } from 'react-icons/fi';
 import { 
   FaSpinner, 
@@ -63,12 +61,9 @@ const SemesterDetails = () => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid');
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [isLiked, setIsLiked] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [filteredBooks, setFilteredBooks] = useState([]);
   const headerRef = useRef(null);
 
   useEffect(() => {
@@ -90,10 +85,6 @@ const SemesterDetails = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    filterBooks();
-  }, [books, searchTerm, selectedCategory]);
-
   const fetchSemesterDetails = async () => {
     try {
       setLoading(true);
@@ -109,7 +100,6 @@ const SemesterDetails = () => {
         const semesterData = response.data.semester;
         setSemester(semesterData);
         setBooks(semesterData.books || []);
-        setFilteredBooks(semesterData.books || []);
         console.log(`✅ Semester loaded: ${semesterData.title}`);
         console.log(`📚 Books found: ${semesterData.books?.length || 0}`);
       } else {
@@ -122,30 +112,6 @@ const SemesterDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterBooks = () => {
-    let filtered = [...books];
-    
-    // Search filter
-    if (searchTerm.trim()) {
-      filtered = filtered.filter(book => 
-        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (book.description && book.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (book.authors && book.authors.some(author => 
-          author && author.toLowerCase().includes(searchTerm.toLowerCase())
-        ))
-      );
-    }
-    
-    // Category filter
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(book => 
-        book.category === selectedCategory
-      );
-    }
-    
-    setFilteredBooks(filtered);
   };
 
   const getBookGradient = (index) => {
@@ -213,14 +179,6 @@ const SemesterDetails = () => {
       8: 'Capstone',
     };
     return labels[semesterNumber] || `Semester ${semesterNumber}`;
-  };
-
-  const getCategories = () => {
-    const categories = new Set();
-    books.forEach(book => {
-      if (book.category) categories.add(book.category);
-    });
-    return ['all', ...Array.from(categories)];
   };
 
   const handleShare = async () => {
@@ -360,10 +318,7 @@ const SemesterDetails = () => {
       <div className="relative overflow-hidden">
         <div className="h-80 w-full relative">
           <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-orange-600">
-            {/* Animated gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-orange-500/20 animate-pulse"></div>
-            
-            {/* Decorative shapes */}
             <div className="absolute top-20 right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl animate-float"></div>
             <div className="absolute bottom-20 left-20 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-float-delayed"></div>
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
@@ -427,26 +382,6 @@ const SemesterDetails = () => {
                     </div>
                   </div>
                 </div>
-                
-                {/* Action buttons */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-3 bg-white text-gray-800 rounded-xl font-semibold hover:shadow-xl transition-all flex items-center gap-2"
-                  >
-                    <FiPlay className="w-5 h-5" />
-                    Start Learning
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-3 bg-white/20 backdrop-blur-md text-white rounded-xl font-semibold hover:bg-white/30 transition-all border border-white/20 flex items-center gap-2"
-                  >
-                    <FiDownload className="w-5 h-5" />
-                    Download All
-                  </motion.button>
-                </div>
               </motion.div>
             </div>
           </div>
@@ -455,86 +390,36 @@ const SemesterDetails = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { icon: <FiBook className="text-xl" />, label: 'Total Books', value: books.length },
-            { icon: <FiUsers className="text-xl" />, label: 'Students', value: semester.students || '120+' },
-            { icon: <FiClock className="text-xl" />, label: 'Duration', value: semester.duration || '6 Months' },
-            { icon: <FiStar className="text-xl" />, label: 'Rating', value: semester.rating || '4.8 ⭐' }
-          ].map((stat, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="bg-white rounded-2xl shadow-lg p-4 hover:shadow-xl transition-all hover:-translate-y-1"
+        {/* View Mode Toggle */}
+        <div className="flex items-center justify-end gap-2 mb-6">
+          <div className="bg-white rounded-xl shadow-md p-1 flex gap-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                viewMode === 'grid'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-green-100 to-orange-100 rounded-lg">
-                  {stat.icon}
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">{stat.label}</p>
-                  <p className="text-xl font-bold text-gray-800">{stat.value}</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Filters and Search */}
-        <div className="bg-white rounded-2xl shadow-lg p-4 mb-8">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search books..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all outline-none"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all outline-none bg-white"
-              >
-                {getCategories().map(category => (
-                  <option key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                <FiGridIcon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                <FiList className="w-5 h-5" />
-              </button>
-              <span className="text-sm text-gray-500 ml-2">
-                {filteredBooks.length} books found
-              </span>
-            </div>
+              <FiGridIcon className="w-4 h-4" />
+              Grid
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                viewMode === 'list'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FiList className="w-4 h-4" />
+              List
+            </button>
           </div>
         </div>
 
         {/* Books Grid/List */}
-        {filteredBooks.length === 0 ? (
+        {books.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -542,31 +427,18 @@ const SemesterDetails = () => {
           >
             <div className="text-6xl mb-4">📖</div>
             <h3 className="text-xl font-semibold text-gray-800 mb-2">No Books Found</h3>
-            <p className="text-gray-600">
-              {searchTerm ? 'No books match your search criteria.' : 'Books for this semester will be added soon.'}
-            </p>
-            {searchTerm && (
-              <button
-                onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
-                className="mt-4 px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center gap-2"
-              >
-                <FiRefreshCw className="w-4 h-4" />
-                Clear Filters
-              </button>
-            )}
-            {!searchTerm && (
-              <button
-                onClick={fetchSemesterDetails}
-                className="mt-4 px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center gap-2"
-              >
-                <FiRefreshCw className="w-4 h-4" />
-                Refresh
-              </button>
-            )}
+            <p className="text-gray-600">Books for this semester will be added soon.</p>
+            <button
+              onClick={fetchSemesterDetails}
+              className="mt-4 px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center gap-2"
+            >
+              <FiRefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
           </motion.div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredBooks.map((book, index) => (
+            {books.map((book, index) => (
               <motion.div
                 key={book._id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -674,7 +546,7 @@ const SemesterDetails = () => {
         ) : (
           // List View
           <div className="space-y-4">
-            {filteredBooks.map((book, index) => (
+            {books.map((book, index) => (
               <motion.div
                 key={book._id}
                 initial={{ opacity: 0, x: -20 }}
@@ -721,46 +593,6 @@ const SemesterDetails = () => {
               </motion.div>
             ))}
           </div>
-        )}
-
-        {/* Call to Action */}
-        {books.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-8 bg-gradient-to-r from-green-600 via-green-700 to-orange-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden"
-          >
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
-            
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div>
-                <h3 className="text-2xl font-bold flex items-center gap-2">
-                  <FaBookReader className="text-3xl" />
-                  Ready to Explore These Books?
-                </h3>
-                <p className="text-white/80 text-sm mt-1">
-                  Choose a book above to start your learning journey
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-                  <FiBookOpen className="text-lg" />
-                  {filteredBooks.length} Books Available
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-white text-green-700 rounded-xl font-bold hover:shadow-xl transition-all flex items-center gap-2"
-                >
-                  <FiPlay className="w-5 h-5" />
-                  Start Learning
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
         )}
       </div>
 

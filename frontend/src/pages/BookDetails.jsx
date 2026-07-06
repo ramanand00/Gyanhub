@@ -6,7 +6,6 @@ import {
   FiArrowLeft, 
   FiBook, 
   FiClock, 
-  FiCalendar, 
   FiLayers, 
   FiStar,
   FiTrendingUp,
@@ -20,8 +19,6 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiRefreshCw,
-  FiHash,
-  FiEdit3,
   FiTag,
   FiFolder,
   FiFileText,
@@ -30,14 +27,10 @@ import {
   FiShare2,
   FiDownload,
   FiEye,
-  FiBarChart2,
   FiTarget,
   FiZap,
   FiGift,
-  FiMapPin,
   FiList,
-  FiGrid as FiGridIcon,
-  FiSearch,
   FiFilter,
   FiBookmark,
   FiFile,
@@ -45,14 +38,13 @@ import {
   FiExternalLink,
   FiClipboard,
   FiFilePlus,
-  FiFileMinus,
-  FiPrinter
+  FiCalendar,
+  FiBarChart2
 } from 'react-icons/fi';
 import { 
   FaSpinner, 
   FaGraduationCap, 
   FaUniversity,
-  FaCalendarAlt,
   FaBook,
   FaUserGraduate,
   FaChalkboardTeacher,
@@ -76,18 +68,14 @@ const BookDetails = () => {
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredChapters, setFilteredChapters] = useState([]);
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [activeTab, setActiveTab] = useState('chapters');
-  const [selectedChapter, setSelectedChapter] = useState(null);
   const headerRef = useRef(null);
-  const [isReading, setIsReading] = useState(false);
   
   // Mock data for Questions Bank
-  const [questions, setQuestions] = useState([
+  const [questions] = useState([
     { id: 1, chapter: 1, question: 'What is the fundamental concept of this chapter?', type: 'Theory', difficulty: 'Easy' },
     { id: 2, chapter: 1, question: 'Explain the key principles discussed in detail.', type: 'Theory', difficulty: 'Medium' },
     { id: 3, chapter: 2, question: 'Solve the numerical problem given in section 2.3.', type: 'Numerical', difficulty: 'Hard' },
@@ -96,7 +84,7 @@ const BookDetails = () => {
   ]);
   
   // Mock data for Past Questions
-  const [pastQuestions, setPastQuestions] = useState([
+  const [pastQuestions] = useState([
     { id: 1, year: '2024', semester: 'Spring', title: 'Final Examination', questions: 10, solved: true },
     { id: 2, year: '2023', semester: 'Fall', title: 'Mid-Term Examination', questions: 8, solved: false },
     { id: 3, year: '2023', semester: 'Spring', title: 'Final Examination', questions: 12, solved: true },
@@ -104,7 +92,7 @@ const BookDetails = () => {
   ]);
   
   // Mock data for Practical Sheets
-  const [practicalSheets, setPracticalSheets] = useState([
+  const [practicalSheets] = useState([
     { id: 1, title: 'Lab Sheet 1: Introduction', description: 'Basic practical exercises', completed: true },
     { id: 2, title: 'Lab Sheet 2: Advanced Concepts', description: 'Intermediate practical exercises', completed: false },
     { id: 3, title: 'Lab Sheet 3: Implementation', description: 'Advanced practical implementation', completed: false },
@@ -130,10 +118,6 @@ const BookDetails = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    filterChapters();
-  }, [chapters, searchTerm]);
-
   const fetchBookDetails = async () => {
     try {
       setLoading(true);
@@ -149,10 +133,6 @@ const BookDetails = () => {
         const bookData = response.data.book;
         setBook(bookData);
         setChapters(bookData.chapters || []);
-        setFilteredChapters(bookData.chapters || []);
-        if (bookData.chapters && bookData.chapters.length > 0) {
-          setSelectedChapter(bookData.chapters[0]);
-        }
         console.log(`✅ Book loaded: ${bookData.title}`);
         console.log(`📚 Chapters found: ${bookData.chapters?.length || 0}`);
       } else {
@@ -167,42 +147,20 @@ const BookDetails = () => {
     }
   };
 
-  const filterChapters = () => {
-    let filtered = [...chapters];
-    
-    if (searchTerm.trim()) {
-      filtered = filtered.filter(chapter => 
-        chapter.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (chapter.description && chapter.description.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-    
-    setFilteredChapters(filtered);
-  };
-
   const getChapterGradient = (index) => {
     const gradients = [
-      'from-blue-400 via-blue-500 to-blue-700',
-      'from-purple-400 via-purple-500 to-purple-700',
-      'from-pink-400 via-pink-500 to-pink-700',
-      'from-green-400 via-green-500 to-green-700',
-      'from-orange-400 via-orange-500 to-orange-700',
-      'from-red-400 via-red-500 to-red-700',
-      'from-indigo-400 via-indigo-500 to-indigo-700',
-      'from-teal-400 via-teal-500 to-teal-700',
-      'from-cyan-400 via-cyan-500 to-cyan-700',
-      'from-amber-400 via-amber-500 to-amber-700',
+      'from-blue-500 to-blue-700',
+      'from-purple-500 to-purple-700',
+      'from-pink-500 to-pink-700',
+      'from-green-500 to-green-700',
+      'from-orange-500 to-orange-700',
+      'from-red-500 to-red-700',
+      'from-indigo-500 to-indigo-700',
+      'from-teal-500 to-teal-700',
+      'from-cyan-500 to-cyan-700',
+      'from-amber-500 to-amber-700',
     ];
     return gradients[index % gradients.length];
-  };
-
-  const getChapterColor = (index) => {
-    const colors = [
-      '#3B82F6', '#8B5CF6', '#EC4899', '#10B981',
-      '#F59E0B', '#EF4444', '#6366F1', '#14B8A6',
-      '#06B6D4', '#FBBF24'
-    ];
-    return colors[index % colors.length];
   };
 
   const getChapterIcon = (index) => {
@@ -217,11 +175,6 @@ const BookDetails = () => {
       <FiAward className="text-2xl" />,
     ];
     return icons[index % icons.length];
-  };
-
-  const getChapterEmoji = (index) => {
-    const emojis = ['📖', '📚', '✨', '🎯', '🚀', '💡', '🌟', '🏆'];
-    return emojis[index % emojis.length];
   };
 
   const handleShare = async () => {
@@ -437,7 +390,7 @@ const BookDetails = () => {
                 className="flex flex-col lg:flex-row lg:items-end justify-between gap-6"
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-3 mb-3 flex-wrap">
                     <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-medium border border-white/20 flex items-center gap-1">
                       <FiBook className="w-3 h-3" />
                       {book.category || 'Academic'}
@@ -476,45 +429,16 @@ const BookDetails = () => {
                       <FiFileText className="w-4 h-4" />
                       <span>{chapters.length} Chapters</span>
                     </div>
-                    <div className="flex items-center gap-2 text-white/70 text-sm">
-                      <FiClock className="w-4 h-4" />
-                      <span>{book.totalPages || '200+'} Pages</span>
-                    </div>
+                    
                     <div className="flex items-center gap-2 text-white/70 text-sm">
                       <FiStar className="w-4 h-4" />
                       <span>{book.rating || '4.5'} ⭐</span>
                     </div>
+                    <div className="flex items-center gap-2 text-white/70 text-sm">
+                      <FiUsers className="w-4 h-4" />
+                      <span>{book.readers || '1.2k+'} Readers</span>
+                    </div>
                   </div>
-                </div>
-                
-                {/* Action buttons */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsReading(!isReading)}
-                    className="px-6 py-3 bg-white text-gray-800 rounded-xl font-semibold hover:shadow-xl transition-all flex items-center gap-2"
-                  >
-                    {isReading ? (
-                      <>
-                        <FiClock className="w-5 h-5" />
-                        Continue Reading
-                      </>
-                    ) : (
-                      <>
-                        <FiPlay className="w-5 h-5" />
-                        Start Reading
-                      </>
-                    )}
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-3 bg-white/20 backdrop-blur-md text-white rounded-xl font-semibold hover:bg-white/30 transition-all border border-white/20 flex items-center gap-2"
-                  >
-                    <FiDownload className="w-5 h-5" />
-                    Download PDF
-                  </motion.button>
                 </div>
               </motion.div>
             </div>
@@ -524,35 +448,9 @@ const BookDetails = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { icon: <FiFileText className="text-xl" />, label: 'Total Chapters', value: chapters.length },
-            { icon: <FiClock className="text-xl" />, label: 'Reading Time', value: '4.5 hours' },
-            { icon: <FiUsers className="text-xl" />, label: 'Readers', value: '1.2k+' },
-            { icon: <FiStar className="text-xl" />, label: 'Rating', value: '4.8/5.0' }
-          ].map((stat, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="bg-white rounded-2xl shadow-lg p-4 hover:shadow-xl transition-all hover:-translate-y-1"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-green-100 to-orange-100 rounded-lg">
-                  {stat.icon}
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">{stat.label}</p>
-                  <p className="text-xl font-bold text-gray-800">{stat.value}</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        
 
-        {/* Tabs - Updated with new tabs */}
+        {/* Tabs */}
         <div className="bg-white rounded-2xl shadow-lg p-1 mb-8 overflow-x-auto">
           <div className="flex gap-1 min-w-max">
             {[
@@ -588,30 +486,7 @@ const BookDetails = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Search and Filter */}
-            <div className="bg-white rounded-2xl shadow-lg p-4 mb-6">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex-1 min-w-[200px]">
-                  <div className="relative">
-                    <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search chapters..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 ml-auto">
-                  <span className="text-sm text-gray-500">
-                    {filteredChapters.length} chapters found
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {filteredChapters.length === 0 ? (
+            {chapters.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -619,25 +494,13 @@ const BookDetails = () => {
               >
                 <div className="text-6xl mb-4">📝</div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">No Chapters Found</h3>
-                <p className="text-gray-600">
-                  {searchTerm ? 'No chapters match your search criteria.' : 'Chapters for this book will be added soon.'}
-                </p>
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="mt-4 px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center gap-2"
-                  >
-                    <FiRefreshCw className="w-4 h-4" />
-                    Clear Search
-                  </button>
-                )}
+                <p className="text-gray-600">Chapters for this book will be added soon.</p>
               </motion.div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredChapters.map((chapter, index) => {
+                {chapters.map((chapter, index) => {
                   const gradient = getChapterGradient(index);
                   const icon = getChapterIcon(index);
-                  const emoji = getChapterEmoji(index);
                   
                   return (
                     <motion.div
@@ -664,17 +527,14 @@ const BookDetails = () => {
                         <div className="relative p-6 z-10">
                           <div className="flex items-start gap-4">
                             <div className="flex-shrink-0">
-                              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-2xl">
+                              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-white text-2xl">
                                 {icon}
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="text-white/60 text-sm font-medium">
-                                  #{chapter.chapterNumber}
-                                </span>
-                                <span className="text-white/40 text-xs">
-                                  {emoji}
+                                  Chapter {chapter.chapterNumber}
                                 </span>
                               </div>
                               <h3 className="text-white font-bold text-lg group-hover:text-white/90 transition-colors line-clamp-1">
@@ -751,10 +611,26 @@ const BookDetails = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {chapters.slice(0, 6).map((chapter, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
-                        <FiCheckCircle className="text-green-500 text-sm" />
-                        <span className="text-sm text-gray-700">{chapter.title}</span>
+                      <div key={idx} className="flex items-center gap-2 p-3 bg-gradient-to-r from-green-50 to-orange-50 rounded-lg border border-green-100">
+                        <FiCheckCircle className="text-green-500 text-sm flex-shrink-0" />
+                        <span className="text-sm text-gray-700 font-medium">{chapter.title}</span>
                       </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <FiTag className="text-purple-500" />
+                    Topics Covered
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {chapters.slice(0, 8).map((chapter, idx) => (
+                      chapter.topics && chapter.topics.map((topic, i) => (
+                        <span key={`${idx}-${i}`} className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-sm border border-purple-100">
+                          #{topic}
+                        </span>
+                      ))
                     ))}
                   </div>
                 </div>
@@ -768,10 +644,7 @@ const BookDetails = () => {
                       <span className="text-white/70">Total Chapters</span>
                       <span className="text-2xl font-bold">{chapters.length}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/70">Total Pages</span>
-                      <span className="text-2xl font-bold">{book.totalPages || '200+'}</span>
-                    </div>
+                  
                     <div className="flex items-center justify-between">
                       <span className="text-white/70">Readers</span>
                       <span className="text-2xl font-bold">{book.readers || '1.2k+'}</span>
@@ -786,15 +659,15 @@ const BookDetails = () => {
                 <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-700 mb-4">Quick Actions</h4>
                   <div className="space-y-2">
-                    <button className="w-full px-4 py-2.5 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors flex items-center gap-2 text-sm font-medium">
+                    <Link to={`/chapter/${chapters[0]?._id}`} className="w-full px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm font-medium">
                       <FiBookOpen className="w-4 h-4" />
                       Start Reading
-                    </button>
-                    <button className="w-full px-4 py-2.5 bg-orange-50 text-orange-700 rounded-xl hover:bg-orange-100 transition-colors flex items-center gap-2 text-sm font-medium">
+                    </Link>
+                    <button className="w-full px-4 py-2.5 bg-orange-50 text-orange-700 rounded-xl hover:bg-orange-100 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
                       <FiDownload className="w-4 h-4" />
                       Download PDF
                     </button>
-                    <button className="w-full px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm font-medium">
+                    <button className="w-full px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
                       <FiShare2 className="w-4 h-4" />
                       Share Book
                     </button>
@@ -813,7 +686,7 @@ const BookDetails = () => {
             transition={{ duration: 0.5 }}
             className="bg-white rounded-2xl shadow-lg p-6"
           >
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                   <FaQuestionCircle className="text-blue-500" />
@@ -848,7 +721,7 @@ const BookDetails = () => {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
                           Chapter {q.chapter}
                         </span>
@@ -868,7 +741,7 @@ const BookDetails = () => {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="ml-4 px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium flex items-center gap-1"
+                      className="ml-4 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium flex items-center gap-1"
                     >
                       <FiPlay className="w-4 h-4" />
                       Solve
@@ -894,7 +767,7 @@ const BookDetails = () => {
             transition={{ duration: 0.5 }}
             className="bg-white rounded-2xl shadow-lg p-6"
           >
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                   <FiFile className="text-orange-500" />
@@ -902,7 +775,7 @@ const BookDetails = () => {
                 </h3>
                 <p className="text-sm text-gray-500">Previous year examination papers</p>
               </div>
-              <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2">
+              <button className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium flex items-center gap-2">
                 <FiDownload className="w-4 h-4" />
                 Download All
               </button>
@@ -919,7 +792,7 @@ const BookDetails = () => {
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">
                           {pq.year}
                         </span>
@@ -939,7 +812,7 @@ const BookDetails = () => {
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="px-3 py-1 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium flex items-center gap-1"
+                        className="px-3 py-1 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium flex items-center gap-1"
                       >
                         <FiEye className="w-4 h-4" />
                         View
@@ -960,7 +833,7 @@ const BookDetails = () => {
             transition={{ duration: 0.5 }}
             className="bg-white rounded-2xl shadow-lg p-6"
           >
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                   <FiClipboard className="text-purple-500" />
@@ -1007,7 +880,7 @@ const BookDetails = () => {
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="px-3 py-1 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium flex items-center gap-1"
+                        className="px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium flex items-center gap-1"
                       >
                         <FiPlay className="w-4 h-4" />
                         Start
@@ -1041,20 +914,20 @@ const BookDetails = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { icon: <FiFileText />, title: 'Sample Questions', desc: 'Practice questions for each chapter' },
-                { icon: <FiVideo />, title: 'Video Lectures', desc: 'Recorded video lessons' },
-                { icon: <FiBook />, title: 'Reference Materials', desc: 'Additional reading materials' },
-                { icon: <FiLayers />, title: 'Practice Exercises', desc: 'Hands-on practice exercises' }
+                { icon: <FiFileText />, title: 'Sample Questions', desc: 'Practice questions for each chapter', color: 'from-blue-500 to-blue-600' },
+                { icon: <FiPlay className="w-5 h-5" />, title: 'Video Lectures', desc: 'Recorded video lessons', color: 'from-red-500 to-red-600' },
+                { icon: <FiBook />, title: 'Reference Materials', desc: 'Additional reading materials', color: 'from-green-500 to-green-600' },
+                { icon: <FiLayers />, title: 'Practice Exercises', desc: 'Hands-on practice exercises', color: 'from-purple-500 to-purple-600' }
               ].map((resource, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1 }}
-                  className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-all hover:border-green-300 cursor-pointer group"
+                  className="p-5 border border-gray-200 rounded-xl hover:shadow-lg transition-all hover:border-green-300 cursor-pointer group bg-gradient-to-br from-white to-gray-50"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-50 rounded-lg text-green-600 group-hover:bg-green-100 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 bg-gradient-to-br ${resource.color} rounded-xl text-white group-hover:scale-110 transition-transform`}>
                       {resource.icon}
                     </div>
                     <div>
@@ -1066,45 +939,6 @@ const BookDetails = () => {
                   </div>
                 </motion.div>
               ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Call to Action */}
-        {chapters.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-8 bg-gradient-to-r from-green-600 via-green-700 to-orange-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
-            
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div>
-                <h3 className="text-2xl font-bold flex items-center gap-2">
-                  <FaBookReader className="text-3xl" />
-                  Ready to Dive In?
-                </h3>
-                <p className="text-white/80 text-sm mt-1">
-                  Start reading chapters and enhance your knowledge
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-                  <FiFileText className="text-lg" />
-                  {chapters.length} Chapters
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-white text-green-700 rounded-xl font-bold hover:shadow-xl transition-all flex items-center gap-2"
-                >
-                  <FiPlay className="w-5 h-5" />
-                  Start Reading
-                </motion.button>
-              </div>
             </div>
           </motion.div>
         )}
