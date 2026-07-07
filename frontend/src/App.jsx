@@ -9,6 +9,7 @@ import ProgramSemesters from './pages/admin/ProgramSemesters';
 import SemesterBooks from './pages/admin/SemesterBooks';
 import BookChapters from './pages/admin/BookChapters';
 import ChapterNotes from './pages/admin/ChapterNotes';
+import BookOverview from './pages/admin/BookOverview';
 
 // Content Pages
 import ProgramDetails from './pages/ProgramDetails';
@@ -249,7 +250,11 @@ function AppContent() {
           <Route path="/admin/semesters/:semesterId/books" element={<AdminProtectedRoute><SemesterBooks /></AdminProtectedRoute>} />
           <Route path="/admin/books/:bookId/chapters" element={<AdminProtectedRoute><BookChapters /></AdminProtectedRoute>} />
           <Route path="/admin/chapters/:chapterId/notes" element={<AdminProtectedRoute><ChapterNotes /></AdminProtectedRoute>} />
-          
+          <Route 
+  path="/admin/books/:bookId/overview" 
+  element={<AdminProtectedRoute><BookOverview /></AdminProtectedRoute>} 
+/>
+
           {/* ===== ERROR ROUTES ===== */}
           <Route path="/404" element={<NotFound />} />
           <Route path="*" element={<Navigate to="/404" replace />} />

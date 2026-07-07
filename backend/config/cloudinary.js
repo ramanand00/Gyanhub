@@ -7,6 +7,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+console.log('☁️ Cloudinary configured with cloud name:', process.env.CLOUDINARY_CLOUD_NAME);
+
 // Upload file to Cloudinary
 const uploadFile = async (file, options = {}) => {
   try {
@@ -69,4 +71,9 @@ const deleteFile = async (publicId, resourceType = 'image') => {
   }
 };
 
-module.exports = { cloudinary, uploadFile, deleteFile };
+// Export BOTH the cloudinary instance and helper functions
+module.exports = { 
+  cloudinary, 
+  uploadFile, 
+  deleteFile 
+};

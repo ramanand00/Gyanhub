@@ -226,6 +226,12 @@ const SemesterBooks = () => {
                       📝 Chapters
                     </button>
                     <button
+                      onClick={() => navigate(`/admin/books/${book._id}/overview`)}
+                      className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 text-sm transition-colors"
+                    >
+                      📋 Overview
+                    </button>
+                    <button
                       onClick={() => openEditModal(book)}
                       className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 text-sm transition-colors"
                     >

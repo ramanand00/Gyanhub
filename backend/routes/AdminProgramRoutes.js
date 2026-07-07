@@ -1,7 +1,10 @@
+// routes/AdminProgramRoutes.js
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const cloudinary = require("../config/cloudinary");
+
+// Import cloudinary correctly
+const { cloudinary } = require("../config/cloudinary");
 
 const Program = require("../models/Program");
 const Semester = require("../models/Semester");
@@ -9,6 +12,59 @@ const Book = require("../models/Book");
 const Chapter = require("../models/Chapter");
 const Note = require("../models/Note");
 const { isAdmin, hasPermission } = require("../middleware/auth");
+
+// ==================== PDF UPLOAD ====================
+router.post("/upload-pdf", isAdmin, hasPermission("manageCourses"), async (req, res) => {
+  try {
+    console.log('📤 PDF Upload request received');
+    const { file, folder } = req.body;
+
+    if (!file) {
+      console.log('❌ No file provided');
+      return res.status(400).json({
+        success: false,
+        message: "No file provided"
+      });
+    }
+
+    console.log(`📄 Uploading PDF to Cloudinary...`);
+    console.log(`📁 Folder: ${folder || 'book_overview'}`);
+
+    // Check if cloudinary is properly imported
+    if (!cloudinary) {
+      console.error('❌ Cloudinary is not properly imported');
+      return res.status(500).json({
+        success: false,
+        message: "Cloudinary configuration error"
+      });
+    }
+
+    // Upload to Cloudinary
+    const uploadResponse = await cloudinary.uploader.upload(file, {
+      folder: folder || 'book_overview',
+      resource_type: 'raw',
+      format: 'pdf',
+      quality: 'auto',
+      use_filename: true,
+      unique_filename: true,
+    });
+
+    console.log(`✅ PDF uploaded successfully: ${uploadResponse.secure_url}`);
+
+    res.json({
+      success: true,
+      url: uploadResponse.secure_url,
+      publicId: uploadResponse.public_id,
+    });
+  } catch (error) {
+    console.error("❌ PDF upload error:", error);
+    console.error("Error details:", error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to upload PDF"
+    });
+  }
+});
 
 // ==================== PROGRAM MANAGEMENT ====================
 
@@ -315,7 +371,7 @@ router.post("/semesters", isAdmin, hasPermission("manageCourses"), async (req, r
       semesterNumber,
       duration,
       order: semesterNumber,
-         isPublished: true, 
+      isPublished: true,
     });
 
     await semester.save();
@@ -609,6 +665,71 @@ router.delete("/books/:id", isAdmin, hasPermission("manageCourses"), async (req,
   }
 });
 
+// ==================== BOOK OVERVIEW MANAGEMENT ====================
+
+// Get book overview
+router.get("/books/:id/overview", isAdmin, hasPermission("manageCourses"), async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Book not found" 
+      });
+    }
+
+    res.json({
+      success: true,
+      overview: book.overview || {},
+    });
+  } catch (error) {
+    console.error("Get book overview error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error" 
+    });
+  }
+});
+
+// Update book overview
+router.put("/books/:id/overview", isAdmin, hasPermission("manageCourses"), async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Book not found" 
+      });
+    }
+
+    const { overview } = req.body;
+    
+    // Initialize overview if it doesn't exist
+    if (!book.overview) {
+      book.overview = {};
+    }
+
+    // Update overview fields
+    if (overview) {
+      book.overview = { ...book.overview, ...overview };
+    }
+
+    await book.save();
+
+    res.json({
+      success: true,
+      message: "Book overview updated successfully",
+      overview: book.overview,
+    });
+  } catch (error) {
+    console.error("Update book overview error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error" 
+    });
+  }
+});
+
 // ==================== CHAPTER MANAGEMENT ====================
 
 // Get chapters for a book
@@ -790,8 +911,6 @@ router.get("/chapters/:chapterId/notes", isAdmin, hasPermission("manageCourses")
   }
 });
 
-// ==================== NOTE MANAGEMENT ====================
-
 // Create note with file upload
 router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) => {
   try {
@@ -812,7 +931,6 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
     console.log('📝 Creating note for chapter:', chapterId);
     console.log('📝 Note data:', { title, description, content, isImportant });
 
-    // Validate required fields
     if (!chapterId) {
       return res.status(400).json({
         success: false,
@@ -834,7 +952,6 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
       });
     }
 
-    // Find the chapter
     const chapter = await Chapter.findById(chapterId);
     if (!chapter) {
       return res.status(404).json({
@@ -854,13 +971,11 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
         try {
           let processedAttachment = { ...attachment };
 
-          // If it's a file (base64), upload to cloudinary
           if (attachment.url && attachment.url.startsWith('data:')) {
             try {
               let resourceType = 'auto';
               let folder = 'note_attachments';
 
-              // Determine resource type
               if (attachment.type === 'image') {
                 resourceType = 'image';
                 folder = 'note_images';
@@ -889,7 +1004,6 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
               console.log(`✅ Uploaded successfully: ${uploadResponse.secure_url}`);
             } catch (uploadError) {
               console.error("❌ Cloudinary upload error:", uploadError);
-              // Keep original URL if upload fails
               processedAttachment.publicId = null;
             }
           }
@@ -935,7 +1049,6 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
       }
     }
 
-    // Create the note
     const note = new Note({
       chapterId: chapter._id,
       bookId: chapter.bookId,
@@ -951,13 +1064,12 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
       tags: tags || [],
       isImportant: isImportant || false,
       order: order || 0,
-      isPublished: true, // Default to published for admin created notes
+      isPublished: true,
     });
 
     await note.save();
     console.log('✅ Note created successfully:', note._id);
 
-    // Update chapter with note reference
     chapter.notes.push(note._id);
     chapter.totalNotes = (chapter.totalNotes || 0) + 1;
     await chapter.save();
@@ -971,7 +1083,6 @@ router.post("/notes", isAdmin, hasPermission("manageCourses"), async (req, res) 
     console.error("❌ Create note error:", error);
     console.error("Error stack:", error.stack);
     
-    // Send detailed error for debugging
     res.status(500).json({
       success: false,
       message: "Failed to create note: " + error.message,
@@ -1134,7 +1245,7 @@ router.delete("/notes/:id", isAdmin, hasPermission("manageCourses"), async (req,
   }
 });
 
-// ==================== SEMESTER MANAGEMENT ====================
+// ==================== GET SINGLE ENTITIES ====================
 
 // Get single semester
 router.get("/semesters/:id", isAdmin, hasPermission("manageCourses"), async (req, res) => {
