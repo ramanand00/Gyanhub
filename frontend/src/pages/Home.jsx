@@ -1,4 +1,4 @@
-// pages/Home.jsx
+// pages/Home.jsx - Updated with mobile responsive welcome card
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -170,7 +170,7 @@ const Home = () => {
     return colors[index % colors.length];
   };
 
-  // Enhanced semester rendering function - REMOVED PROGRESS INDICATORS
+  // Enhanced semester rendering function
   const renderSemesters = (semesters, programId) => {
     if (!semesters || semesters.length === 0) {
       return (
@@ -323,8 +323,6 @@ const Home = () => {
                         </div>
                       </div>
                       
-                      {/* REMOVED: Progress bar and percentage */}
-                      
                       {/* Hover Effect - Arrow */}
                       <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
                         <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
@@ -343,10 +341,6 @@ const Home = () => {
             </div>
           ))}
         </div>
-
-        {/* REMOVED: Progress Summary section */}
-
-        
 
         {semesters.length > 8 && (
           <div className="mt-3">
@@ -396,8 +390,8 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Welcome Card */}
-        <div className="bg-white rounded-xl shadow-xl p-6 mb-8 border-l-4 border-green-500 hover:shadow-2xl transition-shadow duration-200">
+        {/* Welcome Card - Hidden on mobile (below sm breakpoint) */}
+        <div className="hidden sm:block bg-white rounded-xl shadow-xl p-6 mb-8 border-l-4 border-green-500 hover:shadow-2xl transition-shadow duration-200">
           <div className="flex items-start space-x-4">
             <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
               {user?.name ? (
@@ -458,7 +452,8 @@ const Home = () => {
               className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold text-sm hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
             >
               <FiFilter className="w-4 h-4" />
-              <span>Sort: {getSortLabel()}</span>
+              <span className="hidden sm:inline">Sort: {getSortLabel()}</span>
+              <span className="sm:hidden">Sort</span>
               {getSortIcon()}
               <FiChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -620,7 +615,7 @@ const Home = () => {
                     {program.description}
                   </p>
                   
-                  {/* Enhanced Semesters Grid - NO PROGRESS INDICATORS */}
+                  {/* Enhanced Semesters Grid */}
                   {renderSemesters(program.semesters, program._id)}
                 </div>
               </div>
