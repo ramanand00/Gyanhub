@@ -72,12 +72,9 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
   }, [url]);
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-      
-      
-
+    <div className="overflow-hidden bg-white border-0 rounded-none sm:border sm:border-gray-200 sm:rounded-xl">
       {/* PDF Viewer - Sized to the document length */}
-      <div className="relative w-full overflow-hidden" style={{ minHeight: `${viewerHeight}px` }}>
+      <div className="relative w-[100vw] -mx-4 overflow-hidden bg-white sm:bg-gray-50 sm:mx-0 sm:w-full px-0 sm:px-0" style={{ minHeight: `${viewerHeight}px` }}>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50" style={{ minHeight: `${viewerHeight}px` }}>
             <div className="text-center">
@@ -87,13 +84,14 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
           </div>
         )}
         <iframe
-          src={`${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+          src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
           width="100%"
           height={viewerHeight}
           className="w-full block"
-          style={{ border: 'none' }}
+          style={{ border: 'none', display: 'block', overflow: 'hidden' }}
           title={`PDF - ${title || 'Document'}`}
           onLoad={() => setLoading(false)}
+          scrolling="no"
         />
       </div>
     </div>
@@ -168,9 +166,9 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
   }, [url]);
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+    <div className="bg-white rounded-none shadow-none max-w-full w-full max-h-screen sm:rounded-xl sm:shadow-2xl sm:max-w-6xl sm:max-h-[90vh] flex flex-col overflow-hidden">
       {/* PDF Toolbar */}
-      <div className="bg-gray-100 px-4 py-3 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
+      <div className="bg-gray-100 px-2 py-2 border-b-0 sm:px-4 sm:py-3 sm:border-b sm:border-gray-200 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <FiFile className="text-red-500 text-xl flex-shrink-0" />
           <span className="font-medium text-gray-700 truncate max-w-[300px]">
@@ -229,7 +227,7 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
       </div>
 
       {/* PDF Viewer - Sized to the document length */}
-      <div className={`flex-1 relative bg-gray-100 overflow-auto ${isFullscreen ? 'h-[calc(90vh-60px)]' : ''}`} style={{ minHeight: `${viewerHeight}px` }}>
+      <div className={`flex-1 relative bg-white overflow-hidden sm:bg-gray-100 ${isFullscreen ? 'h-[calc(90vh-60px)]' : ''}`} style={{ minHeight: `${viewerHeight}px`, width: '100%' }}>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100" style={{ minHeight: `${viewerHeight}px` }}>
             <div className="text-center">
@@ -239,19 +237,20 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
           </div>
         )}
         <iframe
-          src={`${url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH&zoom=${zoom}`}
+          src={`${url}#toolbar=1&navpanes=0&scrollbar=0&view=FitH&zoom=${zoom}`}
           width="100%"
           height={viewerHeight}
           className="w-full block"
-          style={{ border: 'none' }}
+          style={{ border: 'none', display: 'block', overflow: 'hidden' }}
           title={`PDF Viewer - ${title || 'Document'}`}
           onLoad={() => setLoading(false)}
           allowFullScreen
+          scrolling="no"
         />
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-50 px-4 py-2 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+      <div className="bg-gray-50 px-2 py-2 border-t-0 sm:px-4 sm:border-t sm:border-gray-200 flex items-center justify-between text-xs text-gray-500">
         <span className="truncate">{title || getFileName(url)}</span>
         <div className="flex items-center gap-3">
           <span>Zoom: {Math.round(zoom * 100)}%</span>

@@ -493,27 +493,27 @@ const BookDetails = () => {
               >
                 <FiArrowLeft className="w-5 h-5 text-gray-600" />
               </motion.button>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 {book.bookCover ? (
                   <img 
                     src={book.bookCover} 
                     alt={book.title} 
-                    className="w-10 h-14 object-cover rounded shadow"
+                    className="hidden sm:block w-10 h-14 object-cover rounded shadow"
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.style.display = 'none';
                     }}
                   />
                 ) : (
-                  <span className="text-2xl">📖</span>
+                  <span className="hidden sm:block text-2xl">📖</span>
                 )}
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h1 className="text-lg font-bold text-gray-800 line-clamp-1">
+                    <h1 className="text-base sm:text-lg font-bold text-gray-800 line-clamp-1">
                       {book.title}
                     </h1>
                   </div>
-                  <p className="text-xs text-gray-500 line-clamp-1">
+                  <p className="hidden sm:block text-xs text-gray-500 line-clamp-1">
                     {book.programTitle} • Semester {book.semesterNumber}
                   </p>
                 </div>
@@ -551,7 +551,7 @@ const BookDetails = () => {
 
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="h-80 w-full relative">
+        <div className="h-64 sm:h-80 w-full relative">
           {book.bookCover ? (
             <div className="absolute inset-0">
               <img 
@@ -578,8 +578,8 @@ const BookDetails = () => {
             </div>
           )}
           
-          <div className="absolute top-6 left-6 right-6 z-10">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="absolute top-4 left-4 right-4 z-10 sm:top-6 sm:left-6 sm:right-6">
+            <div className="hidden sm:flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
                   <FiBook className="w-4 h-4" />
@@ -602,7 +602,7 @@ const BookDetails = () => {
             </div>
           </div>
           
-          <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-8 z-10">
             <div className="max-w-7xl mx-auto">
               <motion.div 
                 initial={{ y: 30, opacity: 0 }}
@@ -611,7 +611,7 @@ const BookDetails = () => {
                 className="flex flex-col lg:flex-row lg:items-end justify-between gap-6"
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3 flex-wrap">
+                  <div className="hidden sm:flex items-center gap-3 mb-3 flex-wrap">
                     <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-medium border border-white/20 flex items-center gap-1">
                       <FiBook className="w-3 h-3" />
                       {overview?.natureOfCourse || 'Academic'}
@@ -623,12 +623,12 @@ const BookDetails = () => {
                       </span>
                     )}
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-bold text-white mb-2 leading-tight">
+                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-2 leading-tight">
                     {book.title}
                   </h1>
                   
                   {book.authors && book.authors.length > 0 && book.authors.some(a => a) && (
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <div className="hidden sm:flex flex-wrap items-center gap-3 mb-2">
                       <span className="text-white/70 text-sm flex items-center gap-1">
                         <FaUserTie className="w-4 h-4" />
                         By:
@@ -641,7 +641,7 @@ const BookDetails = () => {
                     </div>
                   )}
                   
-                  <p className="text-white/80 text-sm md:text-base max-w-3xl line-clamp-2">
+                  <p className="hidden sm:block text-white/80 text-sm md:text-base max-w-3xl line-clamp-2">
                     {book.description}
                   </p>
                 </div>
