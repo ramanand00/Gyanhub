@@ -224,61 +224,6 @@ const Notifications = () => {
       <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         
 
-        {/* Header with User Avatar - Styled like Contact page */}
-        <div className="bg-white rounded-xl shadow-xl p-6 mb-6 border-l-4 border-orange-500 hover:shadow-2xl transition-shadow duration-200">
-          <div className="flex items-start space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-              {user?.name ? (
-                <span className="text-white text-xl font-bold">
-                  {user.name.charAt(0)}
-                </span>
-              ) : (
-                <FiBell className="text-white text-2xl" />
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                    Notifications
-                    {unreadCount > 0 && (
-                      <span className="bg-red-500 text-white text-xs px-2.5 py-1 rounded-full font-semibold animate-pulse">
-                        {unreadCount} new
-                      </span>
-                    )}
-                  </h1>
-                  <p className="text-gray-600">
-                    {user ? (
-                      <span className="flex items-center gap-2">
-                        <span>👋</span> Hello, <span className="text-green-600 font-medium">{user.name}</span>! You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-                      </span>
-                    ) : (
-                      'Stay updated with your latest activities'
-                    )}
-                  </p>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={markAllAsRead}
-                    disabled={actionLoading || unreadCount === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                  >
-                    <FiCheckCircle className="w-4 h-4" />
-                    Mark All Read
-                  </button>
-                  <button
-                    onClick={deleteAll}
-                    disabled={actionLoading || notifications.length === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                    Delete All
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Filters - Styled like Contact page category dropdown */}
         <div className="bg-white rounded-xl shadow-md p-4 mb-6 border-t-4 border-green-500 hover:shadow-lg transition-shadow duration-200">

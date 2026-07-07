@@ -36,19 +36,19 @@ import ReactPlayer from 'react-player';
 // ============================================
 const InlinePDFViewer = ({ url, title, onExpand }) => {
   const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(700);
+  const [viewerHeight, setViewerHeight] = useState(900);
 
   useEffect(() => {
     let isMounted = true;
 
     const estimatePdfHeight = async () => {
       if (!url) {
-        if (isMounted) setViewerHeight(700);
+        if (isMounted) setViewerHeight(900);
         return;
       }
 
       try {
-        const response = await fetch(url);
+        const response = await fetch(url, { cache: 'force-cache' });
         if (!response.ok) throw new Error('Unable to fetch PDF');
 
         const buffer = await response.arrayBuffer();
@@ -56,18 +56,21 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
         const text = new TextDecoder('latin1').decode(bytes);
         const pageMatches = text.match(/\/Type\s*\/Page\b/g) || [];
         const pageCount = pageMatches.length || 1;
-        const estimatedHeight = Math.min(4000, Math.max(700, pageCount * 760 + 80));
+        const estimatedHeight = Math.min(4000, Math.max(900, pageCount * 760 + 80));
 
         if (isMounted) setViewerHeight(estimatedHeight);
       } catch (error) {
-        console.error('Unable to estimate PDF height:', error);
-        if (isMounted) setViewerHeight(700);
+        if (isMounted) setViewerHeight(900);
       }
     };
 
-    estimatePdfHeight();
+    const timer = window.setTimeout(() => {
+      estimatePdfHeight();
+    }, 250);
+
     return () => {
       isMounted = false;
+      window.clearTimeout(timer);
     };
   }, [url]);
 
@@ -105,7 +108,7 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(700);
+  const [viewerHeight, setViewerHeight] = useState(900);
 
   const getFileName = (url) => {
     if (!url) return 'PDF Document';
@@ -137,12 +140,12 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
 
     const estimatePdfHeight = async () => {
       if (!url) {
-        if (isMounted) setViewerHeight(700);
+        if (isMounted) setViewerHeight(900);
         return;
       }
 
       try {
-        const response = await fetch(url);
+        const response = await fetch(url, { cache: 'force-cache' });
         if (!response.ok) throw new Error('Unable to fetch PDF');
 
         const buffer = await response.arrayBuffer();
@@ -150,18 +153,21 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
         const text = new TextDecoder('latin1').decode(bytes);
         const pageMatches = text.match(/\/Type\s*\/Page\b/g) || [];
         const pageCount = pageMatches.length || 1;
-        const estimatedHeight = Math.min(4000, Math.max(700, pageCount * 760 + 80));
+        const estimatedHeight = Math.min(4000, Math.max(900, pageCount * 760 + 80));
 
         if (isMounted) setViewerHeight(estimatedHeight);
       } catch (error) {
-        console.error('Unable to estimate PDF height:', error);
-        if (isMounted) setViewerHeight(700);
+        if (isMounted) setViewerHeight(900);
       }
     };
 
-    estimatePdfHeight();
+    const timer = window.setTimeout(() => {
+      estimatePdfHeight();
+    }, 250);
+
     return () => {
       isMounted = false;
+      window.clearTimeout(timer);
     };
   }, [url]);
 
@@ -338,7 +344,7 @@ const ChapterDetails = () => {
         console.log(`📚 Notes found: ${chapterData.notes?.length || 0}`);
         
         if (chapterData.bookId) {
-          await fetchAllChapters(chapterData.bookId, chapterData._id);
+          fetchAllChapters(chapterData.bookId, chapterData._id);
         }
       } else {
         setError('Failed to load chapter details');
