@@ -36,34 +36,48 @@ import ReactPlayer from 'react-player';
 // ============================================
 const InlinePDFViewer = ({ url, title, onExpand }) => {
   const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(() => {
-    if (typeof window === 'undefined') return 900;
-    return Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78)));
-  });
+  const [viewerHeight, setViewerHeight] = useState(700);
 
   useEffect(() => {
-    const updateHeight = () => {
-      setViewerHeight(Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78))));
+    let isMounted = true;
+
+    const estimatePdfHeight = async () => {
+      if (!url) {
+        if (isMounted) setViewerHeight(700);
+        return;
+      }
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Unable to fetch PDF');
+
+        const buffer = await response.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        const text = new TextDecoder('latin1').decode(bytes);
+        const pageMatches = text.match(/\/Type\s*\/Page\b/g) || [];
+        const pageCount = pageMatches.length || 1;
+        const estimatedHeight = Math.min(4000, Math.max(700, pageCount * 760 + 80));
+
+        if (isMounted) setViewerHeight(estimatedHeight);
+      } catch (error) {
+        console.error('Unable to estimate PDF height:', error);
+        if (isMounted) setViewerHeight(700);
+      }
     };
 
-    setLoading(true);
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
-
-    const timer = window.setTimeout(() => {
-      setLoading(false);
-    }, 700);
-
+    estimatePdfHeight();
     return () => {
-      window.removeEventListener('resize', updateHeight);
-      window.clearTimeout(timer);
+      isMounted = false;
     };
   }, [url]);
 
   return (
-    <div className="overflow-hidden bg-white border-0 rounded-none sm:border sm:border-gray-200 sm:rounded-xl">
+    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+      
+      
+
       {/* PDF Viewer - Sized to the document length */}
-      <div className="relative w-[100vw] -mx-4 overflow-hidden bg-white sm:bg-gray-50 sm:mx-0 sm:w-full px-0 sm:px-0" style={{ minHeight: `${viewerHeight}px` }}>
+      <div className="relative w-full overflow-hidden" style={{ minHeight: `${viewerHeight}px` }}>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50" style={{ minHeight: `${viewerHeight}px` }}>
             <div className="text-center">
@@ -73,16 +87,13 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
           </div>
         )}
         <iframe
-          key={url}
-          src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+          src={`${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
           width="100%"
           height={viewerHeight}
           className="w-full block"
-          style={{ border: 'none', display: 'block', overflow: 'hidden' }}
+          style={{ border: 'none' }}
           title={`PDF - ${title || 'Document'}`}
           onLoad={() => setLoading(false)}
-          onError={() => setLoading(false)}
-          scrolling="no"
         />
       </div>
     </div>
@@ -96,10 +107,7 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(() => {
-    if (typeof window === 'undefined') return 900;
-    return Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78)));
-  });
+  const [viewerHeight, setViewerHeight] = useState(700);
 
   const getFileName = (url) => {
     if (!url) return 'PDF Document';
@@ -131,12 +139,12 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
 
     const estimatePdfHeight = async () => {
       if (!url) {
-        if (isMounted) setViewerHeight(900);
+        if (isMounted) setViewerHeight(700);
         return;
       }
 
       try {
-        const response = await fetch(url, { cache: 'force-cache' });
+        const response = await fetch(url);
         if (!response.ok) throw new Error('Unable to fetch PDF');
 
         const buffer = await response.arrayBuffer();
@@ -144,28 +152,25 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
         const text = new TextDecoder('latin1').decode(bytes);
         const pageMatches = text.match(/\/Type\s*\/Page\b/g) || [];
         const pageCount = pageMatches.length || 1;
-        const estimatedHeight = Math.min(4000, Math.max(900, pageCount * 760 + 80));
+        const estimatedHeight = Math.min(4000, Math.max(700, pageCount * 760 + 80));
 
         if (isMounted) setViewerHeight(estimatedHeight);
       } catch (error) {
-        if (isMounted) setViewerHeight(900);
+        console.error('Unable to estimate PDF height:', error);
+        if (isMounted) setViewerHeight(700);
       }
     };
 
-    const timer = window.setTimeout(() => {
-      estimatePdfHeight();
-    }, 250);
-
+    estimatePdfHeight();
     return () => {
       isMounted = false;
-      window.clearTimeout(timer);
     };
   }, [url]);
 
   return (
-    <div className="bg-white rounded-none shadow-none max-w-full w-full max-h-screen sm:rounded-xl sm:shadow-2xl sm:max-w-6xl sm:max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="bg-white rounded-xl overflow-hidden shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
       {/* PDF Toolbar */}
-      <div className="bg-gray-100 px-2 py-2 border-b-0 sm:px-4 sm:py-3 sm:border-b sm:border-gray-200 flex items-center justify-between flex-wrap gap-2">
+      <div className="bg-gray-100 px-4 py-3 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <FiFile className="text-red-500 text-xl flex-shrink-0" />
           <span className="font-medium text-gray-700 truncate max-w-[300px]">
@@ -224,7 +229,7 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
       </div>
 
       {/* PDF Viewer - Sized to the document length */}
-      <div className={`flex-1 relative bg-white overflow-hidden sm:bg-gray-100 ${isFullscreen ? 'h-[calc(90vh-60px)]' : ''}`} style={{ minHeight: `${viewerHeight}px`, width: '100%' }}>
+      <div className={`flex-1 relative bg-gray-100 overflow-auto ${isFullscreen ? 'h-[calc(90vh-60px)]' : ''}`} style={{ minHeight: `${viewerHeight}px` }}>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100" style={{ minHeight: `${viewerHeight}px` }}>
             <div className="text-center">
@@ -234,22 +239,19 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
           </div>
         )}
         <iframe
-          key={url}
-          src={`${url}#toolbar=1&navpanes=0&scrollbar=0&view=FitH&zoom=${zoom}`}
+          src={`${url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH&zoom=${zoom}`}
           width="100%"
           height={viewerHeight}
           className="w-full block"
-          style={{ border: 'none', display: 'block', overflow: 'hidden' }}
+          style={{ border: 'none' }}
           title={`PDF Viewer - ${title || 'Document'}`}
           onLoad={() => setLoading(false)}
-          onError={() => setLoading(false)}
           allowFullScreen
-          scrolling="no"
         />
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-50 px-2 py-2 border-t-0 sm:px-4 sm:border-t sm:border-gray-200 flex items-center justify-between text-xs text-gray-500">
+      <div className="bg-gray-50 px-4 py-2 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
         <span className="truncate">{title || getFileName(url)}</span>
         <div className="flex items-center gap-3">
           <span>Zoom: {Math.round(zoom * 100)}%</span>
@@ -337,7 +339,7 @@ const ChapterDetails = () => {
         console.log(`📚 Notes found: ${chapterData.notes?.length || 0}`);
         
         if (chapterData.bookId) {
-          fetchAllChapters(chapterData.bookId, chapterData._id);
+          await fetchAllChapters(chapterData.bookId, chapterData._id);
         }
       } else {
         setError('Failed to load chapter details');
