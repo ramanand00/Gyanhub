@@ -73,41 +73,8 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-      {/* PDF Header */}
-      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <FiFile className="text-red-500 text-lg flex-shrink-0" />
-          <span className="font-medium text-gray-700 text-sm truncate max-w-[200px]">
-            {title || 'PDF Document'}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => window.open(url, '_blank')}
-            className="p-1 hover:bg-gray-200 rounded transition-colors text-blue-500"
-            title="Open in new tab"
-          >
-            <FiExternalLink className="w-4 h-4" />
-          </button>
-          <a
-            href={url}
-            download
-            className="p-1 hover:bg-gray-200 rounded transition-colors text-green-500"
-            title="Download PDF"
-          >
-            <FiDownload className="w-4 h-4" />
-          </a>
-          {onExpand && (
-            <button
-              onClick={onExpand}
-              className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500"
-              title="Expand"
-            >
-              <FiMaximize2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
+      
+      
 
       {/* PDF Viewer - Sized to the document length */}
       <div className="relative w-full overflow-hidden" style={{ minHeight: `${viewerHeight}px` }}>
