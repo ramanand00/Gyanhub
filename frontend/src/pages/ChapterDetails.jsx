@@ -36,40 +36,26 @@ import ReactPlayer from 'react-player';
 // ============================================
 const InlinePDFViewer = ({ url, title, onExpand }) => {
   const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(900);
+  const [viewerHeight, setViewerHeight] = useState(() => {
+    if (typeof window === 'undefined') return 900;
+    return Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78)));
+  });
 
   useEffect(() => {
-    let isMounted = true;
-
-    const estimatePdfHeight = async () => {
-      if (!url) {
-        if (isMounted) setViewerHeight(900);
-        return;
-      }
-
-      try {
-        const response = await fetch(url, { cache: 'force-cache' });
-        if (!response.ok) throw new Error('Unable to fetch PDF');
-
-        const buffer = await response.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        const text = new TextDecoder('latin1').decode(bytes);
-        const pageMatches = text.match(/\/Type\s*\/Page\b/g) || [];
-        const pageCount = pageMatches.length || 1;
-        const estimatedHeight = Math.min(4000, Math.max(900, pageCount * 760 + 80));
-
-        if (isMounted) setViewerHeight(estimatedHeight);
-      } catch (error) {
-        if (isMounted) setViewerHeight(900);
-      }
+    const updateHeight = () => {
+      setViewerHeight(Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78))));
     };
 
+    setLoading(true);
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+
     const timer = window.setTimeout(() => {
-      estimatePdfHeight();
-    }, 250);
+      setLoading(false);
+    }, 700);
 
     return () => {
-      isMounted = false;
+      window.removeEventListener('resize', updateHeight);
       window.clearTimeout(timer);
     };
   }, [url]);
@@ -87,6 +73,7 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
           </div>
         )}
         <iframe
+          key={url}
           src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
           width="100%"
           height={viewerHeight}
@@ -94,6 +81,7 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
           style={{ border: 'none', display: 'block', overflow: 'hidden' }}
           title={`PDF - ${title || 'Document'}`}
           onLoad={() => setLoading(false)}
+          onError={() => setLoading(false)}
           scrolling="no"
         />
       </div>
@@ -108,7 +96,10 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(900);
+  const [viewerHeight, setViewerHeight] = useState(() => {
+    if (typeof window === 'undefined') return 900;
+    return Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78)));
+  });
 
   const getFileName = (url) => {
     if (!url) return 'PDF Document';
@@ -243,6 +234,7 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
           </div>
         )}
         <iframe
+          key={url}
           src={`${url}#toolbar=1&navpanes=0&scrollbar=0&view=FitH&zoom=${zoom}`}
           width="100%"
           height={viewerHeight}
@@ -250,6 +242,7 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
           style={{ border: 'none', display: 'block', overflow: 'hidden' }}
           title={`PDF Viewer - ${title || 'Document'}`}
           onLoad={() => setLoading(false)}
+          onError={() => setLoading(false)}
           allowFullScreen
           scrolling="no"
         />
