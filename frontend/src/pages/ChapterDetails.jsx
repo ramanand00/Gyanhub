@@ -36,50 +36,49 @@ import ReactPlayer from 'react-player';
 // ============================================
 const InlinePDFViewer = ({ url, title, onExpand }) => {
   const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(700);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const estimatePdfHeight = async () => {
-      if (!url) {
-        if (isMounted) setViewerHeight(700);
-        return;
-      }
-
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Unable to fetch PDF');
-
-        const buffer = await response.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        const text = new TextDecoder('latin1').decode(bytes);
-        const pageMatches = text.match(/\/Type\s*\/Page\b/g) || [];
-        const pageCount = pageMatches.length || 1;
-        const estimatedHeight = Math.min(4000, Math.max(700, pageCount * 760 + 80));
-
-        if (isMounted) setViewerHeight(estimatedHeight);
-      } catch (error) {
-        console.error('Unable to estimate PDF height:', error);
-        if (isMounted) setViewerHeight(700);
-      }
-    };
-
-    estimatePdfHeight();
-    return () => {
-      isMounted = false;
-    };
-  }, [url]);
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-      
-      
+      {/* PDF Header */}
+      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <FiFile className="text-red-500 text-lg flex-shrink-0" />
+          <span className="font-medium text-gray-700 text-sm truncate max-w-[200px]">
+            {title || 'PDF Document'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => window.open(url, '_blank')}
+            className="p-1 hover:bg-gray-200 rounded transition-colors text-blue-500"
+            title="Open in new tab"
+          >
+            <FiExternalLink className="w-4 h-4" />
+          </button>
+          <a
+            href={url}
+            download
+            className="p-1 hover:bg-gray-200 rounded transition-colors text-green-500"
+            title="Download PDF"
+          >
+            <FiDownload className="w-4 h-4" />
+          </a>
+          {onExpand && (
+            <button
+              onClick={onExpand}
+              className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500"
+              title="Expand"
+            >
+              <FiMaximize2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
 
-      {/* PDF Viewer - Sized to the document length */}
-      <div className="relative w-full overflow-hidden" style={{ minHeight: `${viewerHeight}px` }}>
+      {/* PDF Viewer */}
+      <div className="relative" style={{ height: '500px' }}>
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50" style={{ minHeight: `${viewerHeight}px` }}>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
               <p className="mt-2 text-gray-500 text-sm">Loading PDF...</p>
@@ -89,8 +88,8 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
         <iframe
           src={`${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
           width="100%"
-          height={viewerHeight}
-          className="w-full block"
+          height="100%"
+          className="w-full h-full"
           style={{ border: 'none' }}
           title={`PDF - ${title || 'Document'}`}
           onLoad={() => setLoading(false)}
@@ -107,7 +106,6 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(700);
 
   const getFileName = (url) => {
     if (!url) return 'PDF Document';
@@ -133,39 +131,6 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
       window.open(url, '_blank');
     }
   };
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const estimatePdfHeight = async () => {
-      if (!url) {
-        if (isMounted) setViewerHeight(700);
-        return;
-      }
-
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Unable to fetch PDF');
-
-        const buffer = await response.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        const text = new TextDecoder('latin1').decode(bytes);
-        const pageMatches = text.match(/\/Type\s*\/Page\b/g) || [];
-        const pageCount = pageMatches.length || 1;
-        const estimatedHeight = Math.min(4000, Math.max(700, pageCount * 760 + 80));
-
-        if (isMounted) setViewerHeight(estimatedHeight);
-      } catch (error) {
-        console.error('Unable to estimate PDF height:', error);
-        if (isMounted) setViewerHeight(700);
-      }
-    };
-
-    estimatePdfHeight();
-    return () => {
-      isMounted = false;
-    };
-  }, [url]);
 
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
@@ -228,10 +193,10 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
         </div>
       </div>
 
-      {/* PDF Viewer - Sized to the document length */}
-      <div className={`flex-1 relative bg-gray-100 overflow-auto ${isFullscreen ? 'h-[calc(90vh-60px)]' : ''}`} style={{ minHeight: `${viewerHeight}px` }}>
+      {/* PDF Viewer */}
+      <div className={`relative ${isFullscreen ? 'h-[calc(90vh-60px)]' : 'h-[600px]'} bg-gray-100`}>
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100" style={{ minHeight: `${viewerHeight}px` }}>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto"></div>
               <p className="mt-3 text-gray-600 text-sm">Loading PDF...</p>
@@ -241,8 +206,8 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
         <iframe
           src={`${url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH&zoom=${zoom}`}
           width="100%"
-          height={viewerHeight}
-          className="w-full block"
+          height="100%"
+          className="w-full h-full"
           style={{ border: 'none' }}
           title={`PDF Viewer - ${title || 'Document'}`}
           onLoad={() => setLoading(false)}
@@ -455,12 +420,12 @@ const ChapterDetails = () => {
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className={`font-medium truncate ${isActive ? 'text-white' : ''}`}>
-                {chapter.title}
-              </span>
-            </div>
-          </div>
+  <div className="flex items-center gap-1.5">
+    <span className={`font-medium truncate ${isActive ? 'text-white' : ''}`}>
+      {chapter.title}
+    </span>
+  </div>
+</div>
 
           {/* REMOVED: Progress bar */}
 
