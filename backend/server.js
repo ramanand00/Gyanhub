@@ -25,6 +25,7 @@ const allowedOrigins = [
   'https://gyanpark.riseuptech.com.np',
   'https://gyan-park.vercel.app',
   'http://localhost:5173',
+  'http://192.168.18.29:5173',
   'http://localhost:3000',
 ];
 
