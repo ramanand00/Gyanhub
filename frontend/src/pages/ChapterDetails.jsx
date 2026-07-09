@@ -32,52 +32,37 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactPlayer from 'react-player';
 
 // ============================================
-// MOBILE-FRIENDLY PDF VIEWER WITH AUTO-OPEN
+// INLINE PDF VIEWER COMPONENT
 // ============================================
 const InlinePDFViewer = ({ url, title, onExpand }) => {
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const [pdfError, setPdfError] = useState(false);
   const [viewerHeight, setViewerHeight] = useState(() => {
-    if (typeof window === 'undefined') return 600;
-    return Math.min(2200, Math.max(600, Math.round(window.innerHeight * 0.78)));
+    if (typeof window === 'undefined') return 900;
+    return Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78)));
   });
 
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      setViewerHeight(mobile ? Math.min(800, Math.max(500, Math.round(window.innerHeight * 0.7))) : Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78))));
+    const updateHeight = () => {
+      setViewerHeight(Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78))));
     };
 
     setLoading(true);
-    setPdfError(false);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
 
-    // Longer timeout for mobile to ensure PDF loads
     const timer = window.setTimeout(() => {
       setLoading(false);
-    }, isMobile ? 2000 : 700);
+    }, 700);
 
     return () => {
-      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('resize', updateHeight);
       window.clearTimeout(timer);
     };
   }, [url]);
 
-  // Get the appropriate PDF URL based on device
-  const getPdfViewerUrl = () => {
-    if (isMobile) {
-      // Use Google Docs Viewer for better mobile compatibility
-      // This will render the PDF in the iframe on mobile
-      return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-    }
-    return url;
-  };
-
   return (
     <div className="overflow-hidden bg-white border-0 rounded-none sm:border sm:border-gray-200 sm:rounded-xl">
+      {/* PDF Viewer - Sized to the document length */}
       <div className="relative w-[100vw] -mx-4 overflow-hidden bg-white sm:bg-gray-50 sm:mx-0 sm:w-full px-0 sm:px-0" style={{ minHeight: `${viewerHeight}px` }}>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50" style={{ minHeight: `${viewerHeight}px` }}>
@@ -87,62 +72,18 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
             </div>
           </div>
         )}
-        
-        {pdfError ? (
-          // Fallback if PDF fails to load
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 p-4" style={{ minHeight: `${viewerHeight}px` }}>
-            <FiFile className="w-16 h-16 text-red-500 mb-4" />
-            <p className="text-gray-700 text-center mb-3 font-medium">
-              Unable to display PDF
-            </p>
-            <div className="flex gap-3 flex-wrap justify-center">
-              <button
-                onClick={() => window.open(url, '_blank')}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm"
-              >
-                <FiExternalLink className="w-4 h-4" />
-                Open PDF
-              </button>
-              <button
-                onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = title || 'document.pdf';
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                }}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm"
-              >
-                <FiDownload className="w-4 h-4" />
-                Download
-              </button>
-            </div>
-          </div>
-        ) : (
-          // PDF Viewer - Works on both mobile and desktop
-          <iframe
-            key={isMobile ? `mobile-${url}` : `desktop-${url}`}
-            src={getPdfViewerUrl()}
-            width="100%"
-            height={viewerHeight}
-            className="w-full block"
-            style={{ 
-              border: 'none', 
-              display: 'block', 
-              overflow: 'hidden',
-              backgroundColor: '#f9fafb'
-            }}
-            title={`PDF - ${title || 'Document'}`}
-            onLoad={() => setLoading(false)}
-            onError={() => {
-              setLoading(false);
-              setPdfError(true);
-            }}
-            scrolling="no"
-            allowFullScreen
-          />
-        )}
+        <iframe
+          key={url}
+          src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+          width="100%"
+          height={viewerHeight}
+          className="w-full block"
+          style={{ border: 'none', display: 'block', overflow: 'hidden' }}
+          title={`PDF - ${title || 'Document'}`}
+          onLoad={() => setLoading(false)}
+          onError={() => setLoading(false)}
+          scrolling="no"
+        />
       </div>
     </div>
   );
@@ -155,11 +96,9 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const [pdfError, setPdfError] = useState(false);
   const [viewerHeight, setViewerHeight] = useState(() => {
-    if (typeof window === 'undefined') return 600;
-    return Math.min(2200, Math.max(600, Math.round(window.innerHeight * 0.78)));
+    if (typeof window === 'undefined') return 900;
+    return Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78)));
   });
 
   const getFileName = (url) => {
@@ -188,35 +127,40 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
   };
 
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      setViewerHeight(mobile ? Math.min(800, Math.max(500, Math.round(window.innerHeight * 0.7))) : Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78))));
+    let isMounted = true;
+
+    const estimatePdfHeight = async () => {
+      if (!url) {
+        if (isMounted) setViewerHeight(900);
+        return;
+      }
+
+      try {
+        const response = await fetch(url, { cache: 'force-cache' });
+        if (!response.ok) throw new Error('Unable to fetch PDF');
+
+        const buffer = await response.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        const text = new TextDecoder('latin1').decode(bytes);
+        const pageMatches = text.match(/\/Type\s*\/Page\b/g) || [];
+        const pageCount = pageMatches.length || 1;
+        const estimatedHeight = Math.min(4000, Math.max(900, pageCount * 760 + 80));
+
+        if (isMounted) setViewerHeight(estimatedHeight);
+      } catch (error) {
+        if (isMounted) setViewerHeight(900);
+      }
     };
 
-    let isMounted = true;
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
     const timer = window.setTimeout(() => {
-      if (isMounted) setLoading(false);
-    }, isMobile ? 2000 : 700);
+      estimatePdfHeight();
+    }, 250);
 
     return () => {
       isMounted = false;
       window.clearTimeout(timer);
-      window.removeEventListener('resize', checkMobile);
     };
   }, [url]);
-
-  // Get the appropriate PDF URL
-  const getPdfViewerUrl = () => {
-    if (isMobile) {
-      // Use Google Docs Viewer for mobile
-      return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-    }
-    return `${url}#toolbar=1&navpanes=0&scrollbar=0&view=FitH&zoom=${zoom}`;
-  };
 
   return (
     <div className="bg-white rounded-none shadow-none max-w-full w-full max-h-screen sm:rounded-xl sm:shadow-2xl sm:max-w-6xl sm:max-h-[90vh] flex flex-col overflow-hidden">
@@ -224,32 +168,28 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
       <div className="bg-gray-100 px-2 py-2 border-b-0 sm:px-4 sm:py-3 sm:border-b sm:border-gray-200 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <FiFile className="text-red-500 text-xl flex-shrink-0" />
-          <span className="font-medium text-gray-700 truncate max-w-[200px] sm:max-w-[300px]">
+          <span className="font-medium text-gray-700 truncate max-w-[300px]">
             {title || getFileName(url)}
           </span>
         </div>
         <div className="flex items-center gap-1 flex-wrap">
-          {!isMobile && (
-            <>
-              <button
-                onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-                className="p-1.5 hover:bg-gray-200 rounded transition-colors"
-                title="Zoom Out"
-              >
-                <FiZoomOut className="w-4 h-4" />
-              </button>
-              <span className="text-sm text-gray-600 min-w-[50px] text-center hidden sm:block">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={() => setZoom(Math.min(2, zoom + 0.1))}
-                className="p-1.5 hover:bg-gray-200 rounded transition-colors"
-                title="Zoom In"
-              >
-                <FiZoomIn className="w-4 h-4" />
-              </button>
-            </>
-          )}
+          <button
+            onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+            className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+            title="Zoom Out"
+          >
+            <FiZoomOut className="w-4 h-4" />
+          </button>
+          <span className="text-sm text-gray-600 min-w-[50px] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={() => setZoom(Math.min(2, zoom + 0.1))}
+            className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+            title="Zoom In"
+          >
+            <FiZoomIn className="w-4 h-4" />
+          </button>
           <button
             onClick={() => downloadPDF(url)}
             className="p-1.5 hover:bg-green-100 text-green-600 rounded transition-colors"
@@ -266,15 +206,13 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
           >
             <FiExternalLink className="w-4 h-4" />
           </a>
-          {!isMobile && (
-            <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-1.5 hover:bg-gray-200 rounded transition-colors"
-              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-            >
-              {isFullscreen ? <FiMinimize2 className="w-4 h-4" /> : <FiMaximize2 className="w-4 h-4" />}
-            </button>
-          )}
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+            title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+          >
+            {isFullscreen ? <FiMinimize2 className="w-4 h-4" /> : <FiMaximize2 className="w-4 h-4" />}
+          </button>
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-red-100 text-red-500 rounded transition-colors"
@@ -285,7 +223,7 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
         </div>
       </div>
 
-      {/* PDF Viewer */}
+      {/* PDF Viewer - Sized to the document length */}
       <div className={`flex-1 relative bg-white overflow-hidden sm:bg-gray-100 ${isFullscreen ? 'h-[calc(90vh-60px)]' : ''}`} style={{ minHeight: `${viewerHeight}px`, width: '100%' }}>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100" style={{ minHeight: `${viewerHeight}px` }}>
@@ -295,83 +233,36 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
             </div>
           </div>
         )}
-        
-        {pdfError ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 p-6" style={{ minHeight: `${viewerHeight}px` }}>
-            <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
-              <FiFile className="w-20 h-20 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-800 text-center mb-2">
-                {title || getFileName(url)}
-              </h3>
-              <p className="text-sm text-gray-500 text-center mb-6">
-                Unable to display PDF. Please open it in your browser.
-              </p>
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => window.open(url, '_blank')}
-                  className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 text-base"
-                >
-                  <FiExternalLink className="w-5 h-5" />
-                  Open PDF
-                </button>
-                <button
-                  onClick={() => downloadPDF(url)}
-                  className="w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-base"
-                >
-                  <FiDownload className="w-5 h-5" />
-                  Download PDF
-                </button>
-                <button
-                  onClick={onClose}
-                  className="w-full px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-base"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <iframe
-            key={isMobile ? `mobile-${url}` : `desktop-${url}`}
-            src={getPdfViewerUrl()}
-            width="100%"
-            height={viewerHeight}
-            className="w-full block"
-            style={{ 
-              border: 'none', 
-              display: 'block', 
-              overflow: 'hidden',
-              backgroundColor: '#f9fafb'
-            }}
-            title={`PDF Viewer - ${title || 'Document'}`}
-            onLoad={() => setLoading(false)}
-            onError={() => {
-              setLoading(false);
-              setPdfError(true);
-            }}
-            allowFullScreen
-            scrolling="no"
-          />
-        )}
+        <iframe
+          key={url}
+          src={`${url}#toolbar=1&navpanes=0&scrollbar=0&view=FitH&zoom=${zoom}`}
+          width="100%"
+          height={viewerHeight}
+          className="w-full block"
+          style={{ border: 'none', display: 'block', overflow: 'hidden' }}
+          title={`PDF Viewer - ${title || 'Document'}`}
+          onLoad={() => setLoading(false)}
+          onError={() => setLoading(false)}
+          allowFullScreen
+          scrolling="no"
+        />
       </div>
 
       {/* Footer */}
-      {!isMobile && !pdfError && (
-        <div className="bg-gray-50 px-2 py-2 border-t-0 sm:px-4 sm:border-t sm:border-gray-200 flex items-center justify-between text-xs text-gray-500">
-          <span className="truncate">{title || getFileName(url)}</span>
-          <div className="flex items-center gap-3">
-            <span>Zoom: {Math.round(zoom * 100)}%</span>
-            <span>•</span>
-            <span>Click to zoom in/out</span>
-          </div>
+      <div className="bg-gray-50 px-2 py-2 border-t-0 sm:px-4 sm:border-t sm:border-gray-200 flex items-center justify-between text-xs text-gray-500">
+        <span className="truncate">{title || getFileName(url)}</span>
+        <div className="flex items-center gap-3">
+          <span>Zoom: {Math.round(zoom * 100)}%</span>
+          <span>•</span>
+          <span>Click to zoom in/out</span>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 // ============================================
-// MAIN CHAPTER DETAILS COMPONENT (REST OF THE CODE)
+// MAIN CHAPTER DETAILS COMPONENT
 // ============================================
 const ChapterDetails = () => {
   const { chapterId } = useParams();
@@ -569,6 +460,8 @@ const ChapterDetails = () => {
             </div>
           </div>
 
+          {/* REMOVED: Progress bar */}
+
           {hasSubChapters && !isSubChapter && (
             <button
               onClick={(e) => {
@@ -594,7 +487,7 @@ const ChapterDetails = () => {
   };
 
   // ============================================
-  // RENDER ATTACHMENT
+  // RENDER ATTACHMENT (Filter out PDFs if main PDF exists)
   // ============================================
   const renderAttachment = (attachment, index, hasMainPdf) => {
     const isExpanded = expandedAttachment === attachment._id || expandedAttachment === index;
@@ -602,14 +495,17 @@ const ChapterDetails = () => {
     const fileUrl = attachment.url || attachment;
     const fileName = attachment.name || `Attachment ${index + 1}`;
     
+    // If attachment is just a string URL
     if (typeof attachment === 'string') {
       return renderSimpleAttachment(attachment, index, hasMainPdf);
     }
 
+    // SKIP PDF if there's already a main PDF
     if (hasMainPdf && (fileType === 'pdf' || (fileType === 'raw' && attachment.format === 'pdf'))) {
-      return null;
+      return null; // Don't render PDF attachments if main PDF exists
     }
 
+    // If it's a PDF (and no main PDF), render inline
     if (fileType === 'pdf' || (fileType === 'raw' && attachment.format === 'pdf')) {
       return (
         <motion.div
@@ -627,6 +523,7 @@ const ChapterDetails = () => {
       );
     }
 
+    // Render non-PDF attachments normally
     return (
       <motion.div
         key={attachment._id || index}
@@ -729,7 +626,7 @@ const ChapterDetails = () => {
   };
 
   // ============================================
-  // RENDER SIMPLE ATTACHMENT
+  // RENDER SIMPLE ATTACHMENT (Filter out PDFs if main PDF exists)
   // ============================================
   const renderSimpleAttachment = (url, index, hasMainPdf) => {
     const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url);
@@ -737,8 +634,9 @@ const ChapterDetails = () => {
     const isPDF = /\.pdf$/i.test(url);
     const isAudio = /\.(mp3|wav|ogg|m4a)$/i.test(url);
     
+    // SKIP PDF if there's already a main PDF
     if (hasMainPdf && isPDF) {
-      return null;
+      return null; // Don't render PDF attachments if main PDF exists
     }
     
     if (isPDF) {
@@ -812,7 +710,7 @@ const ChapterDetails = () => {
   };
 
   // ============================================
-  // RENDER PDF PREVIEW IN NOTE
+  // RENDER PDF PREVIEW IN NOTE (Main PDF - Only One)
   // ============================================
   const renderNotePdfPreview = (note) => {
     if (!note.pdfUrl) return null;
@@ -905,6 +803,7 @@ const ChapterDetails = () => {
   // RENDER NOTE CONTENT
   // ============================================
   const renderNoteContent = (note, noteIndex) => {
+    // Check if note has a main PDF
     const hasMainPdf = !!note.pdfUrl;
 
     return (
@@ -958,18 +857,19 @@ const ChapterDetails = () => {
             </div>
           )}
 
-          {/* PDF Preview */}
+          {/* PDF Preview - ONLY ONE MAIN PDF */}
           {note.pdfUrl && renderNotePdfPreview(note)}
 
           {/* Video Player */}
           {note.videoUrl && renderVideoPlayer(note, noteIndex)}
 
-          {/* Attachments */}
+          {/* Attachments - PDFs will be skipped if main PDF exists */}
           {note.attachments && note.attachments.length > 0 && (
             <div className="mb-4">
               <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                 <FiPaperclip className="w-4 h-4" />
                 Attachments ({note.attachments.filter(att => {
+                  // Filter out PDFs if main PDF exists
                   if (hasMainPdf) {
                     const isPdf = att.type === 'pdf' || (att.type === 'raw' && att.format === 'pdf');
                     if (typeof att === 'string') {
@@ -1162,9 +1062,9 @@ const ChapterDetails = () => {
             )}
           </AnimatePresence>
 
-          {/* Main Content */}
+          {/* Main Content - Notes first, then Chapter Info */}
           <div className="flex-1 min-w-0">
-            {/* NOTES SECTION */}
+            {/* NOTES SECTION - AT TOP */}
             {notes.length === 0 ? (
               <div className="bg-white rounded-xl shadow-md p-12 text-center mb-8">
                 <div className="text-6xl mb-4">📄</div>
@@ -1183,12 +1083,13 @@ const ChapterDetails = () => {
               </div>
             )}
 
-            {/* CHAPTER INFO SECTION */}
+            {/* CHAPTER INFO SECTION - AT BOTTOM (REMOVED COMPLETED BADGE) */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <span className="text-sm bg-gradient-to-r from-green-100 to-orange-100 text-gray-700 px-3 py-1 rounded-full font-medium">
                   Chapter {chapter.chapterNumber}
                 </span>
+                {/* REMOVED: Completed badge */}
               </div>
 
               <h2 className="text-2xl font-bold text-gray-800 mb-3">{chapter.title}</h2>
@@ -1233,7 +1134,7 @@ const ChapterDetails = () => {
         </div>
       </div>
 
-      {/* PDF Viewer Modal */}
+      {/* PDF Viewer Modal (Fullscreen) */}
       <AnimatePresence>
         {activePdfUrl && (
           <motion.div
