@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import API from '../services/api';
 import { 
   FiArrowLeft, 
@@ -31,59 +34,129 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactPlayer from 'react-player';
 
+// Set up PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc =
+  `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
 // ============================================
-// INLINE PDF VIEWER COMPONENT
+// MOBILE-FRIENDLY PDF VIEWER COMPONENT
 // ============================================
-const InlinePDFViewer = ({ url, title, onExpand }) => {
+const MobilePDFViewer = ({ url, title, onClose, isModal = false }) => {
+  const [numPages, setNumPages] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(() => {
-    if (typeof window === 'undefined') return 900;
-    return Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78)));
-  });
+  const [error, setError] = useState(null);
+  const [pageWidth, setPageWidth] = useState(null);
 
+  // Calculate page width based on viewport
   useEffect(() => {
-    const updateHeight = () => {
-      setViewerHeight(Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78))));
+    const updateWidth = () => {
+      const containerWidth = window.innerWidth;
+      if (containerWidth < 640) {
+        // Mobile: use full width with padding
+        setPageWidth(containerWidth - 32);
+      } else if (containerWidth < 1024) {
+        // Tablet: use 90% of viewport
+        setPageWidth(containerWidth * 0.85);
+      } else {
+        // Desktop: max width 900px
+        setPageWidth(Math.min(containerWidth * 0.8, 900));
+      }
     };
 
-    setLoading(true);
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
-    const timer = window.setTimeout(() => {
-      setLoading(false);
-    }, 700);
+  const onDocumentLoadSuccess = ({ numPages }) => {
+    console.log('✅ PDF loaded successfully, pages:', numPages);
+    setNumPages(numPages);
+    setLoading(false);
+  };
 
-    return () => {
-      window.removeEventListener('resize', updateHeight);
-      window.clearTimeout(timer);
-    };
-  }, [url]);
+  const onDocumentLoadError = (error) => {
+    console.error('❌ PDF loading error:', error);
+    setError('Failed to load PDF document. Please try again.');
+    setLoading(false);
+  };
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center bg-gray-50 px-4 min-h-[400px]">
+        <div className="text-center max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 w-full">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">PDF Error</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="px-6 py-3 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors w-full sm:w-auto"
+            >
+              Close
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="overflow-hidden bg-white border-0 rounded-none sm:border sm:border-gray-200 sm:rounded-xl">
-      {/* PDF Viewer - Sized to the document length */}
-      <div className="relative w-[100vw] -mx-4 overflow-hidden bg-white sm:bg-gray-50 sm:mx-0 sm:w-full px-0 sm:px-0" style={{ minHeight: `${viewerHeight}px` }}>
+    <div className={`${isModal ? 'h-full' : 'w-full h-screen'} bg-gray-100 flex flex-col`}>
+      {/* Toolbar */}
+      <div className="bg-white shadow-sm border-b border-gray-200 px-3 sm:px-4 py-2 flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <h2 className="text-sm sm:text-lg font-semibold text-gray-800 truncate flex-1">
+            {title || 'PDF Document'}
+          </h2>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-red-100 text-red-500 rounded-lg transition-colors"
+            title="Close"
+          >
+            <FiX className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+
+      {/* PDF Viewer - Scrolling View with ALL pages */}
+      <div className={`flex-1 overflow-y-auto p-2 sm:p-4 flex justify-center bg-gray-100 relative ${isModal ? '' : ''}`}>
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50" style={{ minHeight: `${viewerHeight}px` }}>
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-              <p className="mt-2 text-gray-500 text-sm">Loading PDF...</p>
+              <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-red-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600 text-sm sm:text-base">Loading PDF...</p>
             </div>
           </div>
         )}
-        <iframe
-          key={url}
-          src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-          width="100%"
-          height={viewerHeight}
-          className="w-full block"
-          style={{ border: 'none', display: 'block', overflow: 'hidden' }}
-          title={`PDF - ${title || 'Document'}`}
-          onLoad={() => setLoading(false)}
-          onError={() => setLoading(false)}
-          scrolling="no"
-        />
+
+        <div className="w-full flex flex-col items-center">
+          <Document
+            file={url}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={null}
+          >
+            {numPages && Array.from(new Array(numPages), (el, index) => (
+              <div 
+                key={`page_${index + 1}`} 
+                className="mb-3 sm:mb-4 flex justify-center w-full"
+              >
+                <div className="w-full flex justify-center">
+                  <Page
+                    pageNumber={index + 1}
+                    renderTextLayer={true}
+                    renderAnnotationLayer={true}
+                    className="shadow-lg"
+                    width={pageWidth || undefined}
+                    onLoadSuccess={() => setLoading(false)}
+                  />
+                </div>
+              </div>
+            ))}
+          </Document>
+        </div>
       </div>
     </div>
   );
@@ -95,11 +168,6 @@ const InlinePDFViewer = ({ url, title, onExpand }) => {
 const EnhancedPDFViewer = ({ url, title, onClose }) => {
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [viewerHeight, setViewerHeight] = useState(() => {
-    if (typeof window === 'undefined') return 900;
-    return Math.min(2200, Math.max(900, Math.round(window.innerHeight * 0.78)));
-  });
 
   const getFileName = (url) => {
     if (!url) return 'PDF Document';
@@ -125,42 +193,6 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
       window.open(url, '_blank');
     }
   };
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const estimatePdfHeight = async () => {
-      if (!url) {
-        if (isMounted) setViewerHeight(900);
-        return;
-      }
-
-      try {
-        const response = await fetch(url, { cache: 'force-cache' });
-        if (!response.ok) throw new Error('Unable to fetch PDF');
-
-        const buffer = await response.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        const text = new TextDecoder('latin1').decode(bytes);
-        const pageMatches = text.match(/\/Type\s*\/Page\b/g) || [];
-        const pageCount = pageMatches.length || 1;
-        const estimatedHeight = Math.min(4000, Math.max(900, pageCount * 760 + 80));
-
-        if (isMounted) setViewerHeight(estimatedHeight);
-      } catch (error) {
-        if (isMounted) setViewerHeight(900);
-      }
-    };
-
-    const timer = window.setTimeout(() => {
-      estimatePdfHeight();
-    }, 250);
-
-    return () => {
-      isMounted = false;
-      window.clearTimeout(timer);
-    };
-  }, [url]);
 
   return (
     <div className="bg-white rounded-none shadow-none max-w-full w-full max-h-screen sm:rounded-xl sm:shadow-2xl sm:max-w-6xl sm:max-h-[90vh] flex flex-col overflow-hidden">
@@ -223,38 +255,114 @@ const EnhancedPDFViewer = ({ url, title, onClose }) => {
         </div>
       </div>
 
-      {/* PDF Viewer - Sized to the document length */}
-      <div className={`flex-1 relative bg-white overflow-hidden sm:bg-gray-100 ${isFullscreen ? 'h-[calc(90vh-60px)]' : ''}`} style={{ minHeight: `${viewerHeight}px`, width: '100%' }}>
+      {/* PDF Viewer */}
+      <div className="flex-1 relative bg-white overflow-hidden sm:bg-gray-100">
+        <MobilePDFViewer url={url} title={title} isModal={true} />
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// INLINE PDF VIEWER COMPONENT (Shows ALL pages)
+// ============================================
+const InlinePDFViewer = ({ url, title, onExpand }) => {
+  const [numPages, setNumPages] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pageWidth, setPageWidth] = useState(null);
+  const [viewerHeight, setViewerHeight] = useState(() => {
+    if (typeof window === 'undefined') return 600;
+    return Math.min(4000, Math.max(600, Math.round(window.innerHeight * 0.78)));
+  });
+
+  // Calculate page width based on viewport
+  useEffect(() => {
+    const updateWidth = () => {
+      const containerWidth = window.innerWidth;
+      if (containerWidth < 640) {
+        setPageWidth(containerWidth - 32);
+      } else if (containerWidth < 1024) {
+        setPageWidth(containerWidth * 0.85);
+      } else {
+        setPageWidth(Math.min(containerWidth * 0.8, 900));
+      }
+    };
+
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  const onDocumentLoadSuccess = ({ numPages }) => {
+    console.log('✅ PDF loaded successfully, pages:', numPages);
+    setNumPages(numPages);
+    setLoading(false);
+    // Calculate viewer height based on number of pages
+    const estimatedHeight = Math.min(4000, Math.max(600, numPages * 760 + 80));
+    setViewerHeight(estimatedHeight);
+  };
+
+  const onDocumentLoadError = (error) => {
+    console.error('❌ PDF loading error:', error);
+    setError('Failed to load PDF document.');
+    setLoading(false);
+  };
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl p-8 text-center">
+        <div className="text-4xl mb-4">⚠️</div>
+        <p className="text-gray-600 mb-4">Failed to load PDF preview</p>
+        {onExpand && (
+          <button
+            onClick={onExpand}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+          >
+            Open PDF Viewer
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden bg-white border-0 rounded-none sm:border sm:border-gray-200 sm:rounded-xl">
+      {/* PDF Viewer - Shows ALL pages */}
+      <div className="relative w-[100vw] -mx-4 overflow-hidden bg-white sm:bg-gray-50 sm:mx-0 sm:w-full px-0 sm:px-0" style={{ minHeight: `${viewerHeight}px` }}>
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100" style={{ minHeight: `${viewerHeight}px` }}>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50" style={{ minHeight: `${viewerHeight}px` }}>
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto"></div>
-              <p className="mt-3 text-gray-600 text-sm">Loading PDF...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
+              <p className="mt-2 text-gray-500 text-sm">Loading PDF...</p>
             </div>
           </div>
         )}
-        <iframe
-          key={url}
-          src={`${url}#toolbar=1&navpanes=0&scrollbar=0&view=FitH&zoom=${zoom}`}
-          width="100%"
-          height={viewerHeight}
-          className="w-full block"
-          style={{ border: 'none', display: 'block', overflow: 'hidden' }}
-          title={`PDF Viewer - ${title || 'Document'}`}
-          onLoad={() => setLoading(false)}
-          onError={() => setLoading(false)}
-          allowFullScreen
-          scrolling="no"
-        />
-      </div>
-
-      {/* Footer */}
-      <div className="bg-gray-50 px-2 py-2 border-t-0 sm:px-4 sm:border-t sm:border-gray-200 flex items-center justify-between text-xs text-gray-500">
-        <span className="truncate">{title || getFileName(url)}</span>
-        <div className="flex items-center gap-3">
-          <span>Zoom: {Math.round(zoom * 100)}%</span>
-          <span>•</span>
-          <span>Click to zoom in/out</span>
+        
+        <div className="w-full flex flex-col items-center p-4">
+          <Document
+            file={url}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={null}
+          >
+            {numPages && Array.from(new Array(numPages), (el, index) => (
+              <div 
+                key={`page_${index + 1}`} 
+                className="mb-3 sm:mb-4 flex justify-center w-full"
+              >
+                <div className="w-full flex justify-center">
+                  <Page
+                    pageNumber={index + 1}
+                    renderTextLayer={true}
+                    renderAnnotationLayer={true}
+                    className="shadow-lg"
+                    width={pageWidth || undefined}
+                  />
+                </div>
+              </div>
+            ))}
+          </Document>
         </div>
       </div>
     </div>
@@ -460,8 +568,6 @@ const ChapterDetails = () => {
             </div>
           </div>
 
-          {/* REMOVED: Progress bar */}
-
           {hasSubChapters && !isSubChapter && (
             <button
               onClick={(e) => {
@@ -502,7 +608,7 @@ const ChapterDetails = () => {
 
     // SKIP PDF if there's already a main PDF
     if (hasMainPdf && (fileType === 'pdf' || (fileType === 'raw' && attachment.format === 'pdf'))) {
-      return null; // Don't render PDF attachments if main PDF exists
+      return null;
     }
 
     // If it's a PDF (and no main PDF), render inline
@@ -636,7 +742,7 @@ const ChapterDetails = () => {
     
     // SKIP PDF if there's already a main PDF
     if (hasMainPdf && isPDF) {
-      return null; // Don't render PDF attachments if main PDF exists
+      return null;
     }
     
     if (isPDF) {
@@ -857,7 +963,7 @@ const ChapterDetails = () => {
             </div>
           )}
 
-          {/* PDF Preview - ONLY ONE MAIN PDF */}
+          {/* PDF Preview - ONLY ONE MAIN PDF - Shows ALL pages */}
           {note.pdfUrl && renderNotePdfPreview(note)}
 
           {/* Video Player */}
@@ -964,34 +1070,34 @@ const ChapterDetails = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50">
       {/* Header */}
-      <div className="bg-white shadow-md sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center gap-3">
-            <button
+      {/* <div className="bg-white shadow-md sticky top-0 z-20"> */}
+        {/* <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3"> */}
+          {/* <div className="flex items-center gap-3"> */}
+            {/* <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               {sidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
-            </button>
+            </button> */}
 
-            <button
+            {/* <button
               onClick={() => navigate(`/book/${chapter.bookId}`)}
               className="text-gray-600 hover:text-gray-800 transition-colors p-2 hover:bg-gray-100 rounded-lg"
             >
               <FiArrowLeft className="w-5 h-5" />
-            </button>
+            </button> */}
             
-            <div className="flex-1 min-w-0">
+            {/* <div className="flex-1 min-w-0">
               <p className="text-xs text-gray-500 truncate">
                 {chapter.programTitle} • Semester {chapter.semesterNumber}
               </p>
               <h1 className="text-lg md:text-xl font-bold text-gray-800 truncate">
                 {chapter.title}
               </h1>
-            </div>
+            </div> */}
 
-            <div className="flex items-center gap-2">
-              {allChapters.length > 0 && (
+            {/* <div className="flex items-center gap-2"> */}
+              {/* {allChapters.length > 0 && (
                 <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500">
                   <span className="font-medium text-gray-700">
                     {allChapters.findIndex(c => c._id === chapterId) + 1}
@@ -999,18 +1105,18 @@ const ChapterDetails = () => {
                   <span>/</span>
                   <span>{allChapters.length}</span>
                 </div>
-              )}
-              <button
+              )} */}
+              {/* <button
                 onClick={fetchChapterDetails}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
                 title="Refresh"
               >
                 <FiRefreshCw className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+              </button> */}
+            {/* </div> */}
+          {/* </div> */}
+        {/* </div> */}
+      {/* </div> */}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex gap-6 relative">
@@ -1083,13 +1189,12 @@ const ChapterDetails = () => {
               </div>
             )}
 
-            {/* CHAPTER INFO SECTION - AT BOTTOM (REMOVED COMPLETED BADGE) */}
+            {/* CHAPTER INFO SECTION - AT BOTTOM */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <span className="text-sm bg-gradient-to-r from-green-100 to-orange-100 text-gray-700 px-3 py-1 rounded-full font-medium">
                   Chapter {chapter.chapterNumber}
                 </span>
-                {/* REMOVED: Completed badge */}
               </div>
 
               <h2 className="text-2xl font-bold text-gray-800 mb-3">{chapter.title}</h2>
@@ -1148,7 +1253,7 @@ const ChapterDetails = () => {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="w-full max-w-6xl"
+              className="w-full max-w-6xl h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
               <EnhancedPDFViewer
