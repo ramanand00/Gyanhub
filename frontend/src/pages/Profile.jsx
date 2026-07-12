@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import API from '../services/api';
 import { 
-  FiArrowLeft,
   FiUser, 
   FiMail, 
   FiPhone, 
@@ -17,10 +16,6 @@ import {
   FiGlobe,
   FiCheck,
   FiPlus, 
-  FiSettings, 
-  FiBriefcase, 
-  FiCpu, 
-  FiBookOpen,
   FiEdit2,
   FiX,
   FiSave,
@@ -30,13 +25,15 @@ import {
   FiStar,
   FiAward,
   FiClock,
-  FiDownload,
   FiEye,
-  FiPrinter
+  FiTrendingUp,
+  FiPlayCircle,
+  FiRefreshCw,
+  FiBookOpen,
+  FiGrid
 } from 'react-icons/fi';
 import { 
   FaSpinner,
-  FaUserCircle,
   FaGraduationCap,
   FaLinkedin, 
   FaGithub, 
@@ -46,7 +43,7 @@ import {
   FaYoutube, 
   FaGlobe,
   FaCode,
-  FaHeart,
+  FaHeart as FaHeartSolid,
   FaMusic,
   FaBook,
   FaPlane,
@@ -63,7 +60,7 @@ import {
   FaPalette,
   FaGem,
   FaRocket,
-  FaStar,
+  FaStar as FaStarSolid,
   FaHeartbeat,
   FaLeaf,
   FaAppleAlt,
@@ -74,11 +71,21 @@ import {
   FaBus,
   FaUmbrella,
   FaSun,
-  FaMoon
+  FaMoon,
+  FaUserGraduate,
+  FaChalkboardTeacher
 } from 'react-icons/fa';
+import { 
+  MdOutlinePayment,
+  MdOutlineTrendingUp,
+  MdOutlineDashboard,
+  MdOutlinePerson,
+  MdOutlineSchool,
+  MdOutlineLink,
+  MdOutlineStar
+} from 'react-icons/md';
 import CVPreviewModal from '../components/CVPreviewModal';
 import logo from '../assets/logo.png';
-
 
 const Profile = () => {
   const { user, login } = useAuth();
@@ -87,6 +94,18 @@ const Profile = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [showCVPreview, setShowCVPreview] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  // Learning section states
+  const [enrollments, setEnrollments] = useState([]);
+  const [learningLoading, setLearningLoading] = useState(true);
+  const [learningError, setLearningError] = useState('');
+  const [stats, setStats] = useState({
+    total: 0,
+    completed: 0,
+    inProgress: 0
+  });
+
   const [profileData, setProfileData] = useState({
     name: '',
     mobileNumber: '',
@@ -168,6 +187,156 @@ const Profile = () => {
       });
     }
   }, [user]);
+
+  // Fetch enrollments
+  useEffect(() => {
+    fetchEnrollments();
+  }, []);
+
+  const fetchEnrollments = async () => {
+    setLearningLoading(true);
+    try {
+      const res = await API.get('/api/courses/my-courses');
+      const allEnrollments = res.data.enrollments;
+      
+      setEnrollments(allEnrollments);
+      
+      const total = allEnrollments.length;
+      const completed = allEnrollments.filter(e => e.progress === 100).length;
+      const inProgress = allEnrollments.filter(e => e.progress > 0 && e.progress < 100).length;
+      
+      setStats({ total, completed, inProgress });
+    } catch (error) {
+      console.error('Failed to fetch enrollments:', error);
+      setLearningError('Failed to load your courses');
+    } finally {
+      setLearningLoading(false);
+    }
+  };
+
+  const getProgressColor = (progress) => {
+    if (progress >= 80) return 'bg-green-500';
+    if (progress >= 50) return 'bg-orange-500';
+    return 'bg-blue-500';
+  };
+
+  const getProgressTextColor = (progress) => {
+    if (progress >= 80) return 'text-green-600';
+    if (progress >= 50) return 'text-orange-600';
+    return 'text-blue-600';
+  };
+
+  const getPaymentBadge = (enrollment) => {
+    if (enrollment.paymentStatus === 'completed') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-green-100 to-green-200 text-green-700 rounded-full text-xs font-medium">
+          <MdOutlinePayment className="w-3 h-3" />
+          Paid
+        </span>
+      );
+    } else if (enrollment.paymentStatus === 'free') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 rounded-full text-xs font-medium">
+          <FiStar className="w-3 h-3" />
+          Free
+        </span>
+      );
+    }
+    return null;
+  };
+
+  const renderCourseCard = (enrollment) => (
+    <div key={enrollment._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-all duration-300 border-l-4 border-green-500 hover:border-green-600 group">
+      <Link to={`/course/${enrollment.course?._id}/learn`}>
+        <div className="relative overflow-hidden">
+          <img
+            src={enrollment.course?.thumbnail || 'https://via.placeholder.com/400x225/059669/ffffff?text=Course'}
+            alt={enrollment.course?.title}
+            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+          
+          <div className="absolute top-3 right-3 flex flex-col gap-2">
+            {enrollment.completed && (
+              <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-semibold shadow-lg flex items-center gap-1">
+                <FiCheckCircle className="w-3 h-3" />
+                Completed
+              </span>
+            )}
+            <div className="flex items-center gap-1">
+              {getPaymentBadge(enrollment)}
+            </div>
+          </div>
+          
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <div className="flex items-center justify-between text-white text-sm">
+              <span className="flex items-center gap-1 bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm">
+                <FiBook className="w-3 h-3" />
+                {enrollment.course?.totalLessons || 0} lessons
+              </span>
+              <span className="flex items-center gap-1 bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm">
+                <FiTrendingUp className="w-3 h-3" />
+                {enrollment.progress || 0}% complete
+              </span>
+            </div>
+          </div>
+        </div>
+      </Link>
+
+      <div className="p-5">
+        <Link to={`/course/${enrollment.course?._id}/learn`}>
+          <h3 className="font-semibold text-gray-800 text-lg mb-2 hover:text-green-600 transition-colors line-clamp-2">
+            {enrollment.course?.title || 'Course'}
+          </h3>
+        </Link>
+        
+        <div className="flex items-center text-sm text-gray-500 mb-3 gap-3">
+          <span className="flex items-center gap-1">
+            <FaChalkboardTeacher className="text-green-600" />
+            {enrollment.course?.instructor?.name || 'Instructor'}
+          </span>
+          <span className="flex items-center gap-1">
+            <FiClock className="text-green-600" />
+            {new Date(enrollment.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-sm mb-1.5">
+            <span className="text-gray-600 font-medium">Progress</span>
+            <span className={`font-bold ${getProgressTextColor(enrollment.progress || 0)}`}>
+              {enrollment.progress || 0}%
+            </span>
+          </div>
+          <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${getProgressColor(enrollment.progress || 0)} rounded-full transition-all duration-700 ease-out`}
+              style={{ width: `${enrollment.progress || 0}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+          <Link
+            to={`/course/${enrollment.course?._id}/learn`}
+            className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg text-center flex items-center justify-center gap-2"
+          >
+            {enrollment.completed ? (
+              <>
+                <FiRefreshCw className="w-4 h-4" />
+                Review Course
+              </>
+            ) : (
+              <>
+                <FiPlayCircle className="w-4 h-4" />
+                Continue Learning
+              </>
+            )}
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 
   // Format date
   const formatDate = (date) => {
@@ -329,12 +498,11 @@ const Profile = () => {
     if (lower.includes('nature') || lower.includes('tree')) return <FaTree className="text-green-700" />;
     if (lower.includes('dog')) return <FaDog className="text-amber-600" />;
     if (lower.includes('cat')) return <FaCat className="text-amber-700" />;
-    if (lower.includes('music')) return <FaHeadphones className="text-blue-400" />;
     if (lower.includes('fashion')) return <FaGem className="text-pink-400" />;
     if (lower.includes('design')) return <FaPalette className="text-purple-400" />;
     if (lower.includes('jewelry') || lower.includes('gem')) return <FaGem className="text-teal-500" />;
     if (lower.includes('rocket') || lower.includes('space')) return <FaRocket className="text-gray-700" />;
-    if (lower.includes('star')) return <FaStar className="text-yellow-500" />;
+    if (lower.includes('star')) return <FaStarSolid className="text-yellow-500" />;
     if (lower.includes('health')) return <FaHeartbeat className="text-red-500" />;
     if (lower.includes('yoga') || lower.includes('meditation')) return <FaLeaf className="text-green-500" />;
     if (lower.includes('apple') || lower.includes('fruit')) return <FaAppleAlt className="text-red-400" />;
@@ -351,6 +519,8 @@ const Profile = () => {
 
   // View Mode
   if (!isEditing) {
+    const totalCourses = enrollments.length;
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50">
         <CVPreviewModal 
@@ -364,329 +534,447 @@ const Profile = () => {
           logo={logo}
         />
         
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           {/* Profile Header */}
-          <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-8 border-l-4 border-green-500">
-            <div className="bg-gradient-to-r from-green-50 to-orange-50 px-8 py-6">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-8 py-6">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 <div className="relative">
-                  <div className="w-28 h-28 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-xl overflow-hidden">
+                  <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center shadow-xl overflow-hidden border-4 border-white">
                     {profileData.profilePicture ? (
                       <img 
                         src={profileData.profilePicture} 
                         alt={profileData.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          // If image fails to load, show initials
                           e.target.style.display = 'none';
                           const parent = e.target.parentElement;
                           const initials = getInitials(profileData.name || user?.name || 'User');
-                          parent.innerHTML = `<span class="text-white text-4xl font-bold tracking-wider">${initials}</span>`;
+                          parent.innerHTML = `<span class="text-white text-3xl font-bold tracking-wider">${initials}</span>`;
                         }}
                       />
                     ) : (
-                      <span className="text-white text-4xl font-bold tracking-wider">
+                      <span className="text-white text-3xl font-bold tracking-wider">
                         {getInitials(profileData.name || user?.name || 'User')}
                       </span>
                     )}
                   </div>
-                  <div className="absolute bottom-0 right-0 w-8 h-8 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-md">
+                  <div className="absolute bottom-0 right-0 w-7 h-7 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-md">
                     <FiCheck className="w-4 h-4 text-white" />
                   </div>
                 </div>
                 
-                <div className="flex-1 text-center md:text-left">
-                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2">
-                    <h2 className="text-3xl font-bold text-gray-800">
+                <div className="flex-1 text-center md:text-left text-white">
+                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1">
+                    <h2 className="text-2xl font-bold">
                       {profileData.name || user?.name || 'User'}
                     </h2>
-                    <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                    <span className="inline-flex items-center px-3 py-0.5 bg-white/20 rounded-full text-sm font-medium backdrop-blur-sm">
                       <FiCheckCircle className="w-4 h-4 mr-1" />
                       Active
                     </span>
                   </div>
                   
-                  <p className="text-gray-600 flex items-center justify-center md:justify-start gap-2">
-                    <FiMail className="w-4 h-4 text-gray-400" />
+                  <p className="text-white/80 flex items-center justify-center md:justify-start gap-2 text-sm">
+                    <FiMail className="w-4 h-4" />
                     {user?.email}
                   </p>
                   
                   {profileData.bio && (
-                    <p className="mt-2 text-gray-700 max-w-2xl">{profileData.bio}</p>
+                    <p className="mt-2 text-white/90 max-w-2xl text-sm">{profileData.bio}</p>
                   )}
                   
                   <div className="mt-3 flex flex-wrap items-center justify-center md:justify-start gap-2">
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                      className="inline-flex items-center px-3 py-1.5 bg-white text-green-700 rounded-lg font-medium hover:bg-gray-100 transition-all duration-200 shadow-md text-sm"
                     >
-                      <FiEdit2 className="w-4 h-4 mr-2" />
+                      <FiEdit2 className="w-4 h-4 mr-1.5" />
                       Edit Profile
                     </button>
                     
                     <button
                       onClick={() => setShowCVPreview(true)}
-                      className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                      className="inline-flex items-center px-3 py-1.5 bg-white/20 text-white rounded-lg font-medium hover:bg-white/30 transition-all duration-200 shadow-md text-sm backdrop-blur-sm"
                     >
-                      <FiEye className="w-4 h-4 mr-2" />
+                      <FiEye className="w-4 h-4 mr-1.5" />
                       View CV
                     </button>
                     
-                    <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-sm">
-                      <FiClock className="w-4 h-4 mr-1" />
+                    <span className="inline-flex items-center px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm backdrop-blur-sm">
+                      <FiClock className="w-4 h-4 mr-1.5" />
                       {getMemberSinceText(user?.createdAt)}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Tab Navigation - Only 2 Tabs */}
+            <div className="px-3 sm:px-6 border-b border-gray-200 bg-gray-50/50">
+  <div className="flex gap-2 py-2 sm:py-3">
+    <button
+      onClick={() => setActiveTab("overview")}
+      className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2
+        px-3 sm:px-6
+        py-2 sm:py-2.5
+        rounded-lg sm:rounded-xl
+        text-xs sm:text-sm
+        font-medium
+        transition-all duration-200
+        ${
+          activeTab === "overview"
+            ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md shadow-green-500/25"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+        }`}
+    >
+      <MdOutlineDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
+      <span>Overview</span>
+    </button>
+
+    <button
+      onClick={() => setActiveTab("learning")}
+      className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2
+        px-3 sm:px-6
+        py-2 sm:py-2.5
+        rounded-lg sm:rounded-xl
+        text-xs sm:text-sm
+        font-medium
+        transition-all duration-200
+        ${
+          activeTab === "learning"
+            ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md shadow-green-500/25"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+        }`}
+    >
+      <FiBookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
+
+      <span>My Learning</span>
+
+      {totalCourses > 0 && (
+        <span
+          className={`ml-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
+            activeTab === "learning"
+              ? "bg-white/20 text-white"
+              : "bg-green-100 text-green-700"
+          }`}
+        >
+          {totalCourses}
+        </span>
+      )}
+    </button>
+  </div>
+</div>
           </div>
 
-          {/* Profile Content - Rest of the code remains the same */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Main Info */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Personal Information */}
-              <div className="bg-white rounded-xl shadow-md overflow-hidden border-l-4 border-green-500 hover:shadow-lg transition-shadow duration-200">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                    <FiUser className="w-5 h-5 mr-2 text-green-600" />
-                    Personal Information
-                  </h3>
-                </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</p>
-                      <p className="text-base font-semibold text-gray-800 mt-1 flex items-center">
-                        <FiUser className="mr-2 text-gray-400" /> {profileData.name || user?.name || 'User'}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email Address</p>
-                      <p className="text-base font-semibold text-gray-800 mt-1 flex items-center break-all">
-                        <FiMail className="mr-2 text-gray-400" /> {user?.email}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile Number</p>
-                      <p className="text-base font-semibold text-gray-800 mt-1 flex items-center">
-                        <FiPhone className="mr-2 text-gray-400" /> {profileData.mobileNumber || 'Not provided'}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Member Since</p>
-                      <p className="text-base font-semibold text-gray-800 mt-1 flex items-center">
-                        <FiCalendar className="mr-2 text-gray-400" />
-                        {formatDate(user?.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {profileData.address && (profileData.address.street || profileData.address.city) && (
-                    <div className="mt-4 bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address</p>
-                      <p className="text-base text-gray-800 mt-1 flex items-start">
-                        <FiMapPin className="mr-2 text-gray-400 mt-1" />
-                        <span>
-                          {profileData.address.street && `${profileData.address.street}, `}
-                          {profileData.address.city && `${profileData.address.city}, `}
-                          {profileData.address.state && `${profileData.address.state}, `}
-                          {profileData.address.country}
-                          {profileData.address.pincode && ` - ${profileData.address.pincode}`}
-                        </span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Education */}
-              {profileData.education && profileData.education.length > 0 && (
-                <div className="bg-white rounded-xl shadow-md overflow-hidden border-l-4 border-blue-500 hover:shadow-lg transition-shadow duration-200">
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                      <FaGraduationCap className="w-5 h-5 mr-2 text-blue-600" />
-                      Education
-                    </h3>
-                  </div>
-                  <div className="p-6 space-y-4">
-                    {profileData.education.map((edu, index) => (
-                      <div key={index} className="border-l-2 border-blue-300 pl-4 pb-4 last:pb-0 last:border-0">
-                        <h4 className="font-semibold text-gray-800 flex items-center">
-                          <FaGraduationCap className="mr-2 text-blue-500" />
-                          {edu.institution}
-                        </h4>
-                        <p className="text-gray-600 ml-7">{edu.degree} {edu.field && `- ${edu.field}`}</p>
-                        {edu.startYear && (
-                          <p className="text-sm text-gray-500 ml-7">
-                            {edu.startYear} {edu.endYear ? `- ${edu.endYear}` : edu.current ? '- Present' : ''}
-                          </p>
-                        )}
-                        {edu.description && (
-                          <p className="text-sm text-gray-600 mt-1 ml-7">{edu.description}</p>
-                        )}
+          {/* Tab Content */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div className="p-6">
+              {/* Overview Tab - Shows only sections with data */}
+              {activeTab === 'overview' && (
+                <div className="space-y-6">
+                  {/* Stats Cards */}
+                  {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200"> */}
+                      {/* <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-green-700 font-medium">Courses</p>
+                          <p className="text-2xl font-bold text-green-800">{totalCourses}</p>
+                        </div>
+                        <div className="w-10 h-10 bg-green-200 rounded-lg flex items-center justify-center">
+                          <FiBook className="text-green-700" />
+                        </div>
+                      </div> */}
+                    {/* </div>
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-orange-700 font-medium">In Progress</p>
+                          <p className="text-2xl font-bold text-orange-800">{stats.inProgress}</p>
+                        </div>
+                        <div className="w-10 h-10 bg-orange-200 rounded-lg flex items-center justify-center">
+                          <MdOutlineTrendingUp className="text-orange-700" />
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Skills */}
-              {profileData.skills && profileData.skills.length > 0 && (
-                <div className="bg-white rounded-xl shadow-md overflow-hidden border-l-4 border-purple-500 hover:shadow-lg transition-shadow duration-200">
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                      <FaCode className="w-5 h-5 mr-2 text-purple-600" />
-                      Skills
-                    </h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex flex-wrap gap-2">
-                      {profileData.skills.map((skill, index) => (
-                        <span key={index} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium border border-purple-200 flex items-center">
-                          <FaCode className="mr-1.5 text-purple-500" />
-                          {skill}
-                        </span>
-                      ))}
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Interests */}
-              {profileData.interests && profileData.interests.length > 0 && (
-                <div className="bg-white rounded-xl shadow-md overflow-hidden border-l-4 border-orange-500 hover:shadow-lg transition-shadow duration-200">
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                      <FaHeart className="w-5 h-5 mr-2 text-orange-600" />
-                      Interests
-                    </h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex flex-wrap gap-2">
-                      {profileData.interests.map((interest, index) => (
-                        <span key={index} className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-sm font-medium border border-orange-200 flex items-center">
-                          <span className="mr-1.5">{getInterestIcon(interest)}</span>
-                          {interest}
-                        </span>
-                      ))}
+                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-emerald-700 font-medium">Completed</p>
+                          <p className="text-2xl font-bold text-emerald-800">{stats.completed}</p>
+                        </div>
+                        <div className="w-10 h-10 bg-emerald-200 rounded-lg flex items-center justify-center">
+                          <FiAward className="text-emerald-700" />
+                        </div>
+                      </div>
                     </div>
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-blue-700 font-medium">Skills</p>
+                          <p className="text-2xl font-bold text-blue-800">{profileData.skills?.length || 0}</p>
+                        </div>
+                        <div className="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center">
+                          <FaCode className="text-blue-700" />
+                        </div>
+                      </div>
+                    </div>
+                  </div> */}
+
+                  {/* Dynamic Sections - Only show if data exists */}
+                  <div className="space-y-4">
+                    {/* Personal Information */}
+                    {(profileData.mobileNumber || profileData.address?.street || profileData.address?.city) && (
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
+                        <div className="flex items-center gap-3 mb-3">
+                          <MdOutlinePerson className="text-blue-600 text-xl" />
+                          <h3 className="font-semibold text-gray-800">Personal Information</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {profileData.mobileNumber && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <FiPhone className="text-gray-400" />
+                              <span className="text-gray-700">{profileData.mobileNumber}</span>
+                            </div>
+                          )}
+                          {profileData.address?.street && (
+                            <div className="flex items-center gap-2 text-sm col-span-2">
+                              <FiMapPin className="text-gray-400" />
+                              <span className="text-gray-700">
+                                {profileData.address.street}
+                                {profileData.address.city && `, ${profileData.address.city}`}
+                                {profileData.address.state && `, ${profileData.address.state}`}
+                                {profileData.address.country && `, ${profileData.address.country}`}
+                                {profileData.address.pincode && ` - ${profileData.address.pincode}`}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Education */}
+                    {profileData.education && profileData.education.length > 0 && (
+                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-5 border border-purple-200">
+                        <div className="flex items-center gap-3 mb-3">
+                          <MdOutlineSchool className="text-purple-600 text-xl" />
+                          <h3 className="font-semibold text-gray-800">Education</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {profileData.education.map((edu, index) => (
+                            <div key={index} className="border-l-2 border-purple-300 pl-3">
+                              <h4 className="font-medium text-gray-800">{edu.institution}</h4>
+                              <p className="text-sm text-gray-600">{edu.degree} {edu.field && `- ${edu.field}`}</p>
+                              {edu.startYear && (
+                                <p className="text-xs text-gray-500">
+                                  {edu.startYear} {edu.endYear ? `- ${edu.endYear}` : edu.current ? '- Present' : ''}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Skills */}
+                    {profileData.skills && profileData.skills.length > 0 && (
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200">
+                        <div className="flex items-center gap-3 mb-3">
+                          <FaCode className="text-green-600 text-xl" />
+                          <h3 className="font-semibold text-gray-800">Skills</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {profileData.skills.map((skill, index) => (
+                            <span key={index} className="px-3 py-1.5 bg-white text-green-700 rounded-lg text-sm font-medium border border-green-200 shadow-sm">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Interests */}
+                    {profileData.interests && profileData.interests.length > 0 && (
+                      <div className="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-5 border border-pink-200">
+                        <div className="flex items-center gap-3 mb-3">
+                          <FaHeartSolid className="text-pink-600 text-xl" />
+                          <h3 className="font-semibold text-gray-800">Interests</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {profileData.interests.map((interest, index) => (
+                            <span key={index} className="px-3 py-1.5 bg-white text-pink-700 rounded-lg text-sm font-medium border border-pink-200 shadow-sm flex items-center gap-1">
+                              {getInterestIcon(interest)}
+                              {interest}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Social Links */}
+                    {Object.values(profileData.socialLinks || {}).some(v => v) && (
+                      <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-5 border border-indigo-200">
+                        <div className="flex items-center gap-3 mb-3">
+                          <MdOutlineLink className="text-indigo-600 text-xl" />
+                          <h3 className="font-semibold text-gray-800">Social Links</h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {profileData.socialLinks?.linkedin && (
+                            <a href={profileData.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" 
+                               className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600 transition-colors p-2 bg-white rounded-lg border border-gray-200 hover:border-blue-300">
+                              <FaLinkedin className="text-blue-600" />
+                              <span>LinkedIn</span>
+                            </a>
+                          )}
+                          {profileData.socialLinks?.github && (
+                            <a href={profileData.socialLinks.github} target="_blank" rel="noopener noreferrer"
+                               className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 transition-colors p-2 bg-white rounded-lg border border-gray-200 hover:border-gray-300">
+                              <FaGithub />
+                              <span>GitHub</span>
+                            </a>
+                          )}
+                          {profileData.socialLinks?.twitter && (
+                            <a href={profileData.socialLinks.twitter} target="_blank" rel="noopener noreferrer"
+                               className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-400 transition-colors p-2 bg-white rounded-lg border border-gray-200 hover:border-blue-300">
+                              <FaTwitter className="text-blue-400" />
+                              <span>Twitter</span>
+                            </a>
+                          )}
+                          {profileData.socialLinks?.instagram && (
+                            <a href={profileData.socialLinks.instagram} target="_blank" rel="noopener noreferrer"
+                               className="flex items-center gap-2 text-sm text-gray-700 hover:text-pink-600 transition-colors p-2 bg-white rounded-lg border border-gray-200 hover:border-pink-300">
+                              <FaInstagram className="text-pink-600" />
+                              <span>Instagram</span>
+                            </a>
+                          )}
+                          {profileData.socialLinks?.facebook && (
+                            <a href={profileData.socialLinks.facebook} target="_blank" rel="noopener noreferrer"
+                               className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-700 transition-colors p-2 bg-white rounded-lg border border-gray-200 hover:border-blue-300">
+                              <FaFacebook className="text-blue-700" />
+                              <span>Facebook</span>
+                            </a>
+                          )}
+                          {profileData.socialLinks?.youtube && (
+                            <a href={profileData.socialLinks.youtube} target="_blank" rel="noopener noreferrer"
+                               className="flex items-center gap-2 text-sm text-gray-700 hover:text-red-600 transition-colors p-2 bg-white rounded-lg border border-gray-200 hover:border-red-300">
+                              <FaYoutube className="text-red-600" />
+                              <span>YouTube</span>
+                            </a>
+                          )}
+                          {profileData.socialLinks?.website && (
+                            <a href={profileData.socialLinks.website} target="_blank" rel="noopener noreferrer"
+                               className="flex items-center gap-2 text-sm text-gray-700 hover:text-green-600 transition-colors p-2 bg-white rounded-lg border border-gray-200 hover:border-green-300">
+                              <FaGlobe className="text-green-600" />
+                              <span>Website</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty State - If no data in any section */}
+                    {!profileData.mobileNumber && 
+                     !profileData.address?.street && 
+                     profileData.education?.length === 0 && 
+                     profileData.skills?.length === 0 && 
+                     profileData.interests?.length === 0 && 
+                     !Object.values(profileData.socialLinks || {}).some(v => v) && (
+                      <div className="text-center py-12">
+                        <div className="text-6xl mb-4">👋</div>
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">Welcome to Your Profile!</h3>
+                        <p className="text-gray-500 mb-4">Start adding your information to showcase yourself</p>
+                        <button
+                          onClick={() => setIsEditing(true)}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
+                        >
+                          <FiEdit2 className="w-5 h-5" />
+                          Add Your Details
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Right Column - Social Links & Quick Info */}
-            <div className="space-y-6">
-              {/* Social Links */}
-              <div className="bg-white rounded-xl shadow-md overflow-hidden border-l-4 border-indigo-500 hover:shadow-lg transition-shadow duration-200">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                    <FiLink className="w-5 h-5 mr-2 text-indigo-600" />
-                    Social Links
-                  </h3>
-                </div>
-                <div className="p-6 space-y-3">
-                  {profileData.socialLinks?.linkedin && (
-                    <a href={profileData.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" 
-                       className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-blue-50 group">
-                      <FaLinkedin className="text-xl text-blue-600" />
-                      <span className="group-hover:text-blue-600">LinkedIn</span>
-                    </a>
-                  )}
-                  {profileData.socialLinks?.github && (
-                    <a href={profileData.socialLinks.github} target="_blank" rel="noopener noreferrer"
-                       className="flex items-center space-x-3 text-gray-700 hover:text-gray-900 transition-colors p-2 rounded-lg hover:bg-gray-50 group">
-                      <FaGithub className="text-xl" />
-                      <span className="group-hover:text-gray-900">GitHub</span>
-                    </a>
-                  )}
-                  {profileData.socialLinks?.twitter && (
-                    <a href={profileData.socialLinks.twitter} target="_blank" rel="noopener noreferrer"
-                       className="flex items-center space-x-3 text-gray-700 hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-blue-50 group">
-                      <FaTwitter className="text-xl text-blue-400" />
-                      <span className="group-hover:text-blue-400">Twitter / X</span>
-                    </a>
-                  )}
-                  {profileData.socialLinks?.instagram && (
-                    <a href={profileData.socialLinks.instagram} target="_blank" rel="noopener noreferrer"
-                       className="flex items-center space-x-3 text-gray-700 hover:text-pink-600 transition-colors p-2 rounded-lg hover:bg-pink-50 group">
-                      <FaInstagram className="text-xl text-pink-600" />
-                      <span className="group-hover:text-pink-600">Instagram</span>
-                    </a>
-                  )}
-                  {profileData.socialLinks?.facebook && (
-                    <a href={profileData.socialLinks.facebook} target="_blank" rel="noopener noreferrer"
-                       className="flex items-center space-x-3 text-gray-700 hover:text-blue-700 transition-colors p-2 rounded-lg hover:bg-blue-50 group">
-                      <FaFacebook className="text-xl text-blue-700" />
-                      <span className="group-hover:text-blue-700">Facebook</span>
-                    </a>
-                  )}
-                  {profileData.socialLinks?.youtube && (
-                    <a href={profileData.socialLinks.youtube} target="_blank" rel="noopener noreferrer"
-                       className="flex items-center space-x-3 text-gray-700 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50 group">
-                      <FaYoutube className="text-xl text-red-600" />
-                      <span className="group-hover:text-red-600">YouTube</span>
-                    </a>
-                  )}
-                  {profileData.socialLinks?.website && (
-                    <a href={profileData.socialLinks.website} target="_blank" rel="noopener noreferrer"
-                       className="flex items-center space-x-3 text-gray-700 hover:text-green-600 transition-colors p-2 rounded-lg hover:bg-green-50 group">
-                      <FaGlobe className="text-xl text-green-600" />
-                      <span className="group-hover:text-green-600">Website</span>
-                    </a>
-                  )}
-                  {!profileData.socialLinks?.linkedin && 
-                   !profileData.socialLinks?.github && 
-                   !profileData.socialLinks?.twitter && 
-                   !profileData.socialLinks?.instagram && 
-                   !profileData.socialLinks?.facebook && 
-                   !profileData.socialLinks?.youtube && 
-                   !profileData.socialLinks?.website && (
-                    <div className="text-center py-6">
-                      <FiLink className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm">No social links added yet</p>
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="mt-2 text-sm text-green-600 hover:text-green-700 font-medium"
+              {/* My Learning Tab - Scrollable Course Grid */}
+              {activeTab === 'learning' && (
+                <div>
+                  {/* Learning Stats */}
+                  {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-green-700 font-medium">Total</p>
+                          <p className="text-2xl font-bold text-green-800">{stats.total}</p>
+                        </div>
+                        <div className="w-10 h-10 bg-green-200 rounded-lg flex items-center justify-center">
+                          <FiBook className="text-green-700" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-orange-700 font-medium">In Progress</p>
+                          <p className="text-2xl font-bold text-orange-800">{stats.inProgress}</p>
+                        </div>
+                        <div className="w-10 h-10 bg-orange-200 rounded-lg flex items-center justify-center">
+                          <MdOutlineTrendingUp className="text-orange-700" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-emerald-700 font-medium">Completed</p>
+                          <p className="text-2xl font-bold text-emerald-800">{stats.completed}</p>
+                        </div>
+                        <div className="w-10 h-10 bg-emerald-200 rounded-lg flex items-center justify-center">
+                          <FiAward className="text-emerald-700" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-blue-700 font-medium">Courses</p>
+                          <p className="text-2xl font-bold text-blue-800">{enrollments.length}</p>
+                        </div>
+                        <div className="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center">
+                          <FiGrid className="text-blue-700" />
+                        </div>
+                      </div>
+                    </div>
+                  </div> */}
+
+                  {/* Course Grid - Scrollable */}
+                  {learningLoading ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
+                      <p className="text-gray-600 mt-3">Loading your courses...</p>
+                    </div>
+                  ) : enrollments.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4">📚</div>
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">No Courses Yet</h3>
+                      <p className="text-gray-600 mb-4">Start your learning journey today!</p>
+                      <Link
+                        to="/courses"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
                       >
-                        Add social links →
-                      </button>
+                        <FiBookOpen className="w-5 h-5" />
+                        Browse Courses
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-green-200 scrollbar-track-gray-100">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {enrollments.map(renderCourseCard)}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="bg-white rounded-xl shadow-md overflow-hidden border-l-4 border-green-500 hover:shadow-lg transition-shadow duration-200">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                    <FiStar className="w-5 h-5 mr-2 text-green-600" />
-                    Quick Stats
-                  </h3>
-                </div>
-                <div className="p-6 space-y-3">
-                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                    <span className="text-sm text-gray-600">Education</span>
-                    <span className="font-semibold text-gray-800">{profileData.education?.length || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                    <span className="text-sm text-gray-600">Skills</span>
-                    <span className="font-semibold text-gray-800">{profileData.skills?.length || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                    <span className="text-sm text-gray-600">Interests</span>
-                    <span className="font-semibold text-gray-800">{profileData.interests?.length || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                    <span className="text-sm text-gray-600">Social Links</span>
-                    <span className="font-semibold text-gray-800">
-                      {Object.values(profileData.socialLinks || {}).filter(v => v).length}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -694,11 +982,10 @@ const Profile = () => {
     );
   }
 
-  // Edit Mode - Rest remains the same
+  // Edit Mode - Keep the existing edit mode code
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50">
       <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
         <div className="mb-8">
           <button
             onClick={() => setIsEditing(false)}
@@ -721,7 +1008,6 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Messages */}
         {message && (
           <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-l-4 border-green-500">
             <div className="flex items-center space-x-2">
@@ -1019,7 +1305,6 @@ const Profile = () => {
               Educational Background
             </h3>
             
-            {/* Education List */}
             {profileData.education.map((edu, index) => (
               <div key={index} className="bg-gray-50 rounded-lg p-4 mb-3 flex items-start justify-between border border-gray-200">
                 <div className="flex-1">
@@ -1047,7 +1332,6 @@ const Profile = () => {
               </div>
             ))}
 
-            {/* Add Education Form */}
             <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
               <h4 className="font-medium text-gray-700 mb-3">Add Education</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1176,7 +1460,7 @@ const Profile = () => {
           {/* Interests */}
           <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-orange-500 hover:shadow-lg transition-shadow duration-200">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <FaHeart className="mr-2 text-orange-500" />
+              <FaHeartSolid className="mr-2 text-orange-500" />
               Interests
             </h3>
             <div className="flex flex-wrap gap-2 mb-3">
