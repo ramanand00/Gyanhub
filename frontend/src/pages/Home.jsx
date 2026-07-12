@@ -1,4 +1,4 @@
-// pages/Home.jsx - Updated with mobile responsive welcome card
+// pages/Home.jsx - Cleaned version
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -170,7 +170,6 @@ const Home = () => {
     return colors[index % colors.length];
   };
 
-  // Enhanced semester rendering function
   const renderSemesters = (semesters, programId) => {
     if (!semesters || semesters.length === 0) {
       return (
@@ -198,7 +197,6 @@ const Home = () => {
       }
     }
 
-    // Enhanced color palette with gradients
     const getSemesterGradient = (index) => {
       const gradients = [
         'from-blue-500 to-blue-600 border-blue-400',
@@ -288,16 +286,13 @@ const Home = () => {
                     to={`/semester/${semester._id}`}
                     className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    {/* Gradient Background with Animation */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90 group-hover:opacity-100 transition-opacity duration-300`}>
                       <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                     </div>
                     
-                    {/* Decorative Elements */}
                     <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
                     <div className="absolute -bottom-8 -left-8 w-16 h-16 bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
                     
-                    {/* Card Content */}
                     <div className="relative p-4 z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
@@ -323,7 +318,6 @@ const Home = () => {
                         </div>
                       </div>
                       
-                      {/* Hover Effect - Arrow */}
                       <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
                         <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
                           <FiArrowRight className="text-white text-xs" />
@@ -331,7 +325,6 @@ const Home = () => {
                       </div>
                     </div>
                     
-                    {/* Glow Effect on Hover */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     </div>
@@ -435,95 +428,6 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Sorting Controls */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-8 flex flex-wrap items-center justify-between gap-4 border-t-4 border-orange-500 hover:shadow-lg transition-shadow duration-200">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <FiGrid className="text-lg text-green-600" />
-              <span className="bg-gradient-to-r from-green-100 to-orange-100 px-3 py-1 rounded-full flex items-center gap-1 text-sm">
-                {filteredPrograms.length} programs
-              </span>
-            </span>
-          </div>
-          
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold text-sm hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
-            >
-              <FiFilter className="w-4 h-4" />
-              <span className="hidden sm:inline">Sort: {getSortLabel()}</span>
-              <span className="sm:hidden">Sort</span>
-              {getSortIcon()}
-              <FiChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-                <div className="py-1">
-                  <button
-                    onClick={() => handleSortChange('newest')}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center gap-3 ${
-                      sortBy === 'newest'
-                        ? 'bg-green-50 text-green-700 font-semibold'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <FaSortAmountDown className="text-lg" />
-                    <span>Newest First</span>
-                    {sortBy === 'newest' && (
-                      <FiCheckCircle className="ml-auto text-green-600" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleSortChange('oldest')}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center gap-3 ${
-                      sortBy === 'oldest'
-                        ? 'bg-green-50 text-green-700 font-semibold'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <FaSortAmountUp className="text-lg" />
-                    <span>Oldest First</span>
-                    {sortBy === 'oldest' && (
-                      <FiCheckCircle className="ml-auto text-green-600" />
-                    )}
-                  </button>
-                  <div className="border-t border-gray-100 my-1"></div>
-                  <button
-                    onClick={() => handleSortChange('nameAsc')}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center gap-3 ${
-                      sortBy === 'nameAsc'
-                        ? 'bg-green-50 text-green-700 font-semibold'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <FaSortAlphaDown className="text-lg" />
-                    <span>A to Z</span>
-                    {sortBy === 'nameAsc' && (
-                      <FiCheckCircle className="ml-auto text-green-600" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleSortChange('nameDesc')}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center gap-3 ${
-                      sortBy === 'nameDesc'
-                        ? 'bg-green-50 text-green-700 font-semibold'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <FaSortAlphaUp className="text-lg" />
-                    <span>Z to A</span>
-                    {sortBy === 'nameDesc' && (
-                      <FiCheckCircle className="ml-auto text-green-600" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Programs Grid - Image on Top */}
         {filteredPrograms.length === 0 ? (
           <div className="bg-white rounded-xl shadow-xl p-12 text-center border-l-4 border-orange-500">
@@ -539,7 +443,7 @@ const Home = () => {
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-200 border-l-4 border-green-500"
               >
                 {/* Program Image - Top */}
-                <div className={`h-56 w-full bg-gradient-to-r ${getProgramColor(index)} relative`}>
+                <div className={`h-50 w-full bg-gradient-to-r ${getProgramColor(index)} relative`}>
                   {program.thumbnail ? (
                     <img 
                       src={program.thumbnail} 
@@ -555,53 +459,11 @@ const Home = () => {
                       <FaUniversity className="text-8xl text-white/30" />
                     </div>
                   )}
-                  
-                  {/* Overlay badges */}
-                  <div className="absolute top-4 right-4 flex flex-col gap-2">
-                    <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg">
-                      {program.category}
-                    </span>
-                    <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg flex items-center gap-1">
-                      <FiClock className="w-3 h-3" />
-                      {program.duration || '4 Years'}
-                    </span>
-                  </div>
-                  
-                  <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
-                    <span className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1">
-                      <FiLayers className="w-3 h-3" />
-                      {program.totalSemesters || 0} Semesters
-                    </span>
-                    <span className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1">
-                      <FiBook className="w-3 h-3" />
-                      {program.totalBooks || 0} Books
-                    </span>
-                    <span className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1">
-                      <FiCalendar className="w-3 h-3" />
-                      {new Date(program.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
                 </div>
 
                 {/* Program Info */}
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <FiBookOpen className="text-green-600" />
-                        {program.title}
-                      </h3>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium flex items-center gap-1">
-                          <FiHash className="w-3 h-3" />
-                          ID: {program._id.slice(-6)}
-                        </span>
-                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
-                          <FiEdit3 className="w-3 h-3" />
-                          Updated: {new Date(program.updatedAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
                     <Link
                       to={`/program/${program._id}`}
                       className="bg-gradient-to-r from-green-500 to-green-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 group whitespace-nowrap"

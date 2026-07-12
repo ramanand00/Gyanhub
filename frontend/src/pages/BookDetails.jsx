@@ -1,4 +1,4 @@
-// pages/BookDetails.jsx - Updated Overview Section with Single Card & PDF Fix
+// pages/BookDetails.jsx - Clean & Optimized
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import API from '../services/api';
@@ -87,7 +87,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ============================================
-// PDF VIEWER COMPONENT - FIXED
+// PDF VIEWER COMPONENT
 // ============================================
 const PDFViewerModal = ({ url, title, onClose }) => {
   const [zoom, setZoom] = useState(1);
@@ -102,7 +102,6 @@ const PDFViewerModal = ({ url, title, onClose }) => {
 
   const downloadPDF = async (url) => {
     try {
-      // Open in new tab for download
       window.open(url, '_blank');
     } catch (error) {
       console.error('Download failed:', error);
@@ -231,7 +230,6 @@ const BookDetails = () => {
   const [selectedPdf, setSelectedPdf] = useState(null);
   const headerRef = useRef(null);
 
-  // Stats for display
   const [stats, setStats] = useState({
     totalQuestions: 0,
     solvedQuestions: 0,
@@ -276,7 +274,6 @@ const BookDetails = () => {
         setChapters(bookData.chapters || []);
         setOverview(bookData.overview || null);
         
-        // Calculate stats
         if (bookData.overview) {
           const overviewData = bookData.overview;
           setStats({
@@ -373,7 +370,6 @@ const BookDetails = () => {
     }
   };
 
-  // Parse course contents into structured format
   const parseCourseContents = (contents) => {
     if (!contents || contents.length === 0) return [];
     
@@ -401,7 +397,6 @@ const BookDetails = () => {
     return parsed;
   };
 
-  // ===== PDF VIEWER HANDLER =====
   const openPdfViewer = (url, title) => {
     if (!url) {
       alert('PDF URL is not available');
@@ -477,81 +472,9 @@ const BookDetails = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-orange-50">
-      {/* Sticky Header */}
-      <div 
-        ref={headerRef}
-        className="sticky top-0 z-50 bg-white/80 backdrop-blur-md transition-all duration-300 border-b border-gray-100"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => navigate(`/semester/${book.semesterId}`)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <FiArrowLeft className="w-5 h-5 text-gray-600" />
-              </motion.button>
-              <div className="flex items-center gap-3 min-w-0">
-                {book.bookCover ? (
-                  <img 
-                    src={book.bookCover} 
-                    alt={book.title} 
-                    className="hidden sm:block w-10 h-14 object-cover rounded shadow"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <span className="hidden sm:block text-2xl">📖</span>
-                )}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-base sm:text-lg font-bold text-gray-800 line-clamp-1">
-                      {book.title}
-                    </h1>
-                  </div>
-                  <p className="hidden sm:block text-xs text-gray-500 line-clamp-1">
-                    {book.programTitle} • Semester {book.semesterNumber}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsBookmarked(!isBookmarked)}
-                className={`p-2 rounded-lg transition-colors ${isBookmarked ? 'bg-yellow-50 text-yellow-500' : 'hover:bg-gray-100 text-gray-600'}`}
-              >
-                <FiBookmark className={`w-5 h-5 ${isBookmarked ? 'fill-yellow-500' : ''}`} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsLiked(!isLiked)}
-                className={`p-2 rounded-lg transition-colors ${isLiked ? 'bg-red-50 text-red-500' : 'hover:bg-gray-100 text-gray-600'}`}
-              >
-                <FiHeart className={`w-5 h-5 ${isLiked ? 'fill-red-500' : ''}`} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleShare}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-              >
-                <FiShare2 className="w-5 h-5" />
-              </motion.button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Hero Section */}
+      {/* Hero Section - Optimized */}
       <div className="relative overflow-hidden">
-        <div className="h-64 sm:h-80 w-full relative">
+        <div className="h-[250px] sm:h-[300px] md:h-[350px] lg:h-[400px] w-full relative">
           {book.bookCover ? (
             <div className="absolute inset-0">
               <img 
@@ -563,88 +486,118 @@ const BookDetails = () => {
                   e.target.style.display = 'none';
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent"></div>
             </div>
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-orange-600">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-emerald-800">
               <div className="absolute inset-0 bg-black/20"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-orange-500/20 animate-pulse"></div>
-              <div className="absolute top-20 right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl animate-float"></div>
-              <div className="absolute bottom-20 left-20 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-float-delayed"></div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <FaBook className="text-9xl text-white/20" />
+              <div className="absolute inset-0">
+                <div className="absolute top-10 left-10 w-40 h-40 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-10 right-10 w-60 h-60 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                  <FaBook className="text-8xl sm:text-9xl text-white/10" />
+                </div>
               </div>
+              <div className="absolute inset-0" style={{
+                backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 0%, transparent 50%)`
+              }}></div>
             </div>
           )}
           
-          <div className="absolute top-4 left-4 right-4 z-10 sm:top-6 sm:left-6 sm:right-6">
-            <div className="hidden sm:flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
-                  <FiBook className="w-4 h-4" />
-                  {book.programTitle}
-                </span>
-                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
-                  <FiLayers className="w-4 h-4" />
-                  Semester {book.semesterNumber}
-                </span>
-                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
-                  <FiFileText className="w-4 h-4" />
-                  {chapters.length} Chapters
-                </span>
-              </div>
-              {overview && (
-                <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg">
-                  ⭐ {overview.creditHours || 3} Credit Hours
-                </span>
-              )}
-            </div>
-          </div>
           
-          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-8 z-10">
+          
+          {/* Hero Content - Bottom */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 z-10">
             <div className="max-w-7xl mx-auto">
               <motion.div 
-                initial={{ y: 30, opacity: 0 }}
+                initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.6 }}
-                className="flex flex-col lg:flex-row lg:items-end justify-between gap-6"
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="space-y-3 sm:space-y-4"
               >
-                <div className="flex-1">
-                  <div className="hidden sm:flex items-center gap-3 mb-3 flex-wrap">
-                    <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-medium border border-white/20 flex items-center gap-1">
-                      <FiBook className="w-3 h-3" />
-                      {overview?.natureOfCourse || 'Academic'}
+               
+                
+                {/* Title */}
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight">
+                  {book.title}
+                </h1>
+                
+                {/* Authors */}
+                {book.authors && book.authors.length > 0 && book.authors.some(a => a) && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-white/70 text-xs sm:text-sm flex items-center gap-1">
+                      <FaUserTie className="w-3 h-3 sm:w-4 sm:h-4" />
+                      By:
                     </span>
-                    {overview?.courseNumber && (
-                      <span className="bg-blue-500/30 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-medium border border-blue-400/30 flex items-center gap-1">
-                        <FiTag className="w-3 h-3" />
-                        {overview.courseNumber}
+                    {book.authors.filter(a => a).map((author, i) => (
+                      <span key={i} className="text-white font-medium text-xs sm:text-sm bg-white/20 backdrop-blur-sm px-2 py-0.5 sm:px-3 sm:py-1 rounded-full">
+                        {author}
                       </span>
-                    )}
+                    ))}
                   </div>
-                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-2 leading-tight">
-                    {book.title}
-                  </h1>
-                  
-                  {book.authors && book.authors.length > 0 && book.authors.some(a => a) && (
-                    <div className="hidden sm:flex flex-wrap items-center gap-3 mb-2">
-                      <span className="text-white/70 text-sm flex items-center gap-1">
-                        <FaUserTie className="w-4 h-4" />
-                        By:
-                      </span>
-                      {book.authors.filter(a => a).map((author, i) => (
-                        <span key={i} className="text-white font-medium text-sm bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-                          {author}
-                        </span>
-                      ))}
-                    </div>
+                )}
+                
+                {/* Description */}
+                <p className="text-white/80 text-sm sm:text-base max-w-3xl line-clamp-2 sm:line-clamp-3">
+                  {book.description || 'Explore this comprehensive book designed to help you master the subject with ease.'}
+                </p>
+                
+                {/* Quick Stats */}
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-white/70 text-[10px] sm:text-xs">
+                    <FiFileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="font-medium text-white/90">{chapters.length}</span>
+                    <span className="hidden xs:inline">Chapters</span>
+                  </div>
+                  <div className="w-px h-4 bg-white/20"></div>
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-white/70 text-[10px] sm:text-xs">
+                    <FaQuestionCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="font-medium text-white/90">{stats.totalQuestions}</span>
+                    <span className="hidden xs:inline">Questions</span>
+                  </div>
+                  <div className="w-px h-4 bg-white/20"></div>
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-white/70 text-[10px] sm:text-xs">
+                    <FiCheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+                    <span className="font-medium text-white/90">{stats.solvedQuestions}</span>
+                    <span className="hidden xs:inline">Solved</span>
+                  </div>
+                  {stats.totalPracticalSheets > 0 && (
+                    <>
+                      <div className="w-px h-4 bg-white/20 hidden sm:block"></div>
+                      <div className="flex items-center gap-1.5 sm:gap-2 text-white/70 text-[10px] sm:text-xs hidden sm:flex">
+                        <FiClipboard className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+                        <span className="font-medium text-white/90">{stats.totalPracticalSheets}</span>
+                        <span>Labs</span>
+                      </div>
+                    </>
                   )}
-                  
-                  <p className="hidden sm:block text-white/80 text-sm md:text-base max-w-3xl line-clamp-2">
-                    {book.description}
-                  </p>
                 </div>
+                
+                {/* CTA Buttons */}
+                {/* <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2 sm:pt-3">
+                  {chapters.length > 0 && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setActiveTab('chapters')}
+                      className="px-4 sm:px-6 py-2 sm:py-3 bg-white text-gray-900 rounded-xl font-semibold text-sm sm:text-base hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+                    >
+                      <FiPlay className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span>Start Reading</span>
+                    </motion.button>
+                  )}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setActiveTab('overview')}
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-white/20 backdrop-blur-md text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-white/30 transition-all duration-200 border border-white/20 flex items-center gap-2"
+                  >
+                    <FiInfo className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="hidden xs:inline">View Details</span>
+                    <span className="xs:hidden">Details</span>
+                  </motion.button>
+                </div> */}
               </motion.div>
             </div>
           </div>
@@ -653,45 +606,54 @@ const BookDetails = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-lg p-1 mb-8 overflow-x-auto">
+        {/* Tabs - Optimized for Mobile */}
+        <div className="bg-white rounded-2xl shadow-lg p-1 mb-6 overflow-x-auto">
           <div className="flex gap-1 min-w-max">
             {[
-              { id: 'overview', icon: <FiInfo className="mr-2" />, label: 'Overview' },
-              { id: 'chapters', icon: <FiFileText className="mr-2" />, label: 'Chapters' },
-              { id: 'questions', icon: <FaQuestionCircle className="mr-2" />, label: 'Questions Bank' },
-              { id: 'past', icon: <FiFile className="mr-2" />, label: 'Past Questions' },
-              { id: 'practical', icon: <FiClipboard className="mr-2" />, label: 'Practical Sheets' },
+              { id: 'overview', icon: <FiInfo className="mr-1 sm:mr-2 text-xs sm:text-sm" />, label: 'Overview' },
+              { id: 'chapters', icon: <FiFileText className="mr-1 sm:mr-2 text-xs sm:text-sm" />, label: 'Chapters' },
+              { id: 'questions', icon: <FaQuestionCircle className="mr-1 sm:mr-2 text-xs sm:text-sm" />, label: 'Questions' },
+              { id: 'past', icon: <FiFile className="mr-1 sm:mr-2 text-xs sm:text-sm" />, label: 'Past' },
+              { id: 'practical', icon: <FiClipboard className="mr-1 sm:mr-2 text-xs sm:text-sm" />, label: 'Labs' },
             ].map((tab) => (
               <motion.button
                 key={tab.id}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center ${
-                  activeTab === tab.id
+                className={`
+                  px-3 sm:px-6 
+                  py-2 sm:py-3 
+                  rounded-xl 
+                  font-medium 
+                  transition-all duration-200 
+                  flex items-center
+                  text-xs sm:text-sm
+                  whitespace-nowrap
+                  ${activeTab === tab.id
                     ? 'bg-gradient-to-r from-green-500 to-orange-500 text-white shadow-lg'
                     : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                  }
+                `}
               >
                 {tab.icon}
                 {tab.label}
                 {tab.id === 'questions' && stats.totalQuestions > 0 && (
-                  <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                  <span className={`ml-1 sm:ml-2 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${
                     activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
                   }`}>
                     {stats.totalQuestions}
                   </span>
                 )}
                 {tab.id === 'past' && stats.totalPastQuestions > 0 && (
-                  <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                  <span className={`ml-1 sm:ml-2 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${
                     activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
                   }`}>
                     {stats.totalPastQuestions}
                   </span>
                 )}
                 {tab.id === 'practical' && stats.totalPracticalSheets > 0 && (
-                  <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                  <span className={`ml-1 sm:ml-2 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${
                     activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
                   }`}>
                     {stats.totalPracticalSheets}
@@ -702,7 +664,7 @@ const BookDetails = () => {
           </div>
         </div>
 
-        {/* ==================== OVERVIEW TAB - SINGLE CARD ==================== */}
+        {/* ==================== OVERVIEW TAB ==================== */}
         {activeTab === 'overview' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -712,20 +674,20 @@ const BookDetails = () => {
             {overview ? (
               <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                 {/* University Header */}
-                <div className="bg-gradient-to-r from-green-600 to-orange-600 px-6 py-4 flex items-center gap-3">
-                  <FaUniversity className="text-white text-2xl" />
+                <div className="bg-gradient-to-r from-green-600 to-orange-600 px-4 sm:px-6 py-4 flex items-center gap-3">
+                  <FaUniversity className="text-white text-xl sm:text-2xl" />
                   <div>
-                    <h2 className="text-xl font-bold text-white">{overview.university || 'Tribhuwan University'}</h2>
-                    <p className="text-white/80 text-sm">{overview.programType || 'Institute of Science and Technology'}</p>
+                    <h2 className="text-base sm:text-xl font-bold text-white">{overview.university || 'Tribhuwan University'}</h2>
+                    <p className="text-white/80 text-xs sm:text-sm">{overview.programType || 'Institute of Science and Technology'}</p>
                   </div>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="p-4 sm:p-6 space-y-6">
                   {/* Course Info Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-gray-50 rounded-lg p-4">
                       <p className="text-xs text-gray-500 font-medium">Course Title</p>
-                      <p className="font-semibold text-gray-800">{overview.courseTitle || book.title}</p>
+                      <p className="font-semibold text-gray-800 text-sm">{overview.courseTitle || book.title}</p>
                       <p className="text-sm text-gray-500">Semester: {overview.semester || 'I'}</p>
                       <p className="text-sm text-gray-500">Credit Hours: {overview.creditHours || 3}</p>
                       <p className="text-sm text-gray-500">Nature: {overview.natureOfCourse || 'Theory + Lab'}</p>
@@ -739,15 +701,15 @@ const BookDetails = () => {
                       <div className="grid grid-cols-3 gap-2 mt-1">
                         <div className="text-center">
                           <p className="text-xl font-bold text-green-600">{overview.fullMarks?.theory || 60}</p>
-                          <p className="text-xs text-gray-500">Theory</p>
+                          <p className="text-[10px] text-gray-500">Theory</p>
                         </div>
                         <div className="text-center">
                           <p className="text-xl font-bold text-blue-600">{overview.fullMarks?.practical || 20}</p>
-                          <p className="text-xs text-gray-500">Practical</p>
+                          <p className="text-[10px] text-gray-500">Practical</p>
                         </div>
                         <div className="text-center">
                           <p className="text-xl font-bold text-orange-600">{overview.fullMarks?.internal || 20}</p>
-                          <p className="text-xs text-gray-500">Internal</p>
+                          <p className="text-[10px] text-gray-500">Internal</p>
                         </div>
                       </div>
                     </div>
@@ -757,15 +719,15 @@ const BookDetails = () => {
                       <div className="grid grid-cols-3 gap-2 mt-1">
                         <div className="text-center">
                           <p className="text-xl font-bold text-red-600">{overview.passMarks?.theory || 24}</p>
-                          <p className="text-xs text-gray-500">Theory</p>
+                          <p className="text-[10px] text-gray-500">Theory</p>
                         </div>
                         <div className="text-center">
                           <p className="text-xl font-bold text-purple-600">{overview.passMarks?.practical || 8}</p>
-                          <p className="text-xs text-gray-500">Practical</p>
+                          <p className="text-[10px] text-gray-500">Practical</p>
                         </div>
                         <div className="text-center">
                           <p className="text-xl font-bold text-pink-600">{overview.passMarks?.internal || 8}</p>
-                          <p className="text-xs text-gray-500">Internal</p>
+                          <p className="text-[10px] text-gray-500">Internal</p>
                         </div>
                       </div>
                     </div>
@@ -952,7 +914,7 @@ const BookDetails = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-2xl shadow-lg p-6"
+            className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
           >
             {!overview?.questionsBank || overview.questionsBank.length === 0 ? (
               <div className="text-center py-12">
@@ -1045,7 +1007,7 @@ const BookDetails = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-2xl shadow-lg p-6"
+            className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
           >
             {!overview?.pastQuestions || overview.pastQuestions.length === 0 ? (
               <div className="text-center py-12">
@@ -1122,7 +1084,7 @@ const BookDetails = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-2xl shadow-lg p-6"
+            className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
           >
             {!overview?.practicalSheets || overview.practicalSheets.length === 0 ? (
               <div className="text-center py-12">
@@ -1241,12 +1203,30 @@ const BookDetails = () => {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-20px); }
         }
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
+        }
         .animate-float {
           animation: float 6s ease-in-out infinite;
         }
         .animate-float-delayed {
           animation: float-delayed 8s ease-in-out infinite;
           animation-delay: 2s;
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 4s ease-in-out infinite;
+        }
+        .delay-1000 {
+          animation-delay: 1000ms;
+        }
+        @media (max-width: 480px) {
+          .xs\:inline {
+            display: inline !important;
+          }
+          .xs\:hidden {
+            display: none !important;
+          }
         }
       `}</style>
     </div>

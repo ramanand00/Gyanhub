@@ -36,7 +36,9 @@ import {
   FiGift,
   FiMapPin,
   FiList,
-  FiGrid as FiGridIcon
+  FiGrid as FiGridIcon,
+  FiUser,
+  FiCalendar as FiCalendarIcon
 } from 'react-icons/fi';
 import { 
   FaSpinner, 
@@ -90,24 +92,17 @@ const SemesterDetails = () => {
       setLoading(true);
       setError('');
       
-      console.log(`🔍 Fetching semester details for ID: ${semesterId}`);
-      
       const response = await API.get(`/api/semesters/${semesterId}`);
-      
-      console.log('📚 Semester Details Response:', response.data);
       
       if (response.data.success) {
         const semesterData = response.data.semester;
         setSemester(semesterData);
         setBooks(semesterData.books || []);
-        console.log(`✅ Semester loaded: ${semesterData.title}`);
-        console.log(`📚 Books found: ${semesterData.books?.length || 0}`);
       } else {
         setError('Failed to load semester details');
       }
     } catch (error) {
-      console.error('❌ Failed to fetch semester:', error);
-      console.error('Error details:', error.response?.data);
+      console.error('Failed to fetch semester:', error);
       setError(error.response?.data?.message || 'Failed to load semester details');
     } finally {
       setLoading(false);
@@ -220,36 +215,36 @@ const SemesterDetails = () => {
 
   if (error || !semester) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-orange-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-orange-50 px-4">
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="text-center max-w-md bg-white rounded-3xl shadow-2xl p-8 border-l-4 border-red-500"
+          className="text-center max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 border-l-4 border-red-500 w-full"
         >
           <motion.div
             animate={{ rotate: [0, 10, -10, 0] }}
             transition={{ duration: 0.5, repeat: 2 }}
           >
-            <FiAlertCircle className="text-6xl text-red-500 mx-auto mb-4" />
+            <FiAlertCircle className="text-5xl sm:text-6xl text-red-500 mx-auto mb-4" />
           </motion.div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Semester Not Found</h2>
-          <p className="text-gray-600 mb-6">{error || 'Semester not found'}</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Semester Not Found</h2>
+          <p className="text-sm sm:text-base text-gray-600 mb-6">{error || 'Semester not found'}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={fetchSemesterDetails}
-              className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <FiRefreshCw className="w-5 h-5" />
+              <FiRefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
               Try Again
             </motion.button>
             <Link 
               to="/home" 
-              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors inline-flex items-center justify-center gap-2"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors inline-flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <FiArrowLeft className="w-5 h-5" />
+              <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               Back to Home
             </Link>
           </div>
@@ -260,125 +255,71 @@ const SemesterDetails = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-orange-50">
-      {/* Sticky Header */}
-      <div 
-        ref={headerRef}
-        className="sticky top-0 z-50 bg-white/80 backdrop-blur-md transition-all duration-300 border-b border-gray-100"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => navigate(-1)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <FiArrowLeft className="w-5 h-5 text-gray-600" />
-              </motion.button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{getSemesterEmoji(semester.semesterNumber)}</span>
-                  <h1 className="text-lg font-bold text-gray-800 line-clamp-1">
-                    {semester.title || `Semester ${semester.semesterNumber}`}
-                  </h1>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>{semester.programTitle}</span>
-                  <span>•</span>
-                  <span>{semester.duration || '6 Months'}</span>
-                  <span>•</span>
-                  <span>{books.length} Books</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsLiked(!isLiked)}
-                className={`p-2 rounded-lg transition-colors ${isLiked ? 'bg-red-50 text-red-500' : 'hover:bg-gray-100 text-gray-600'}`}
-              >
-                <FiHeart className={`w-5 h-5 ${isLiked ? 'fill-red-500' : ''}`} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleShare}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-              >
-                <FiShare2 className="w-5 h-5" />
-              </motion.button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="h-80 w-full relative">
+        <div className="h-56 sm:h-80 w-full relative">
           <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-orange-600">
             <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-orange-500/20 animate-pulse"></div>
-            <div className="absolute top-20 right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl animate-float"></div>
-            <div className="absolute bottom-20 left-20 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-float-delayed"></div>
+            <div className="absolute top-20 right-20 w-48 h-48 sm:w-64 sm:h-64 bg-white/5 rounded-full blur-3xl animate-float"></div>
+            <div className="absolute bottom-20 left-20 w-60 h-60 sm:w-80 sm:h-80 bg-white/5 rounded-full blur-3xl animate-float-delayed"></div>
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <div className="text-9xl text-white/20">
+              <div className="text-6xl sm:text-9xl text-white/20">
                 {getSemesterEmoji(semester.semesterNumber)}
               </div>
             </div>
           </div>
           
           {/* Floating badges */}
-          <div className="absolute top-6 left-6 right-6 z-10">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
-                  {getSemesterIcon(semester.semesterNumber)}
+          <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-10">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="bg-white/20 backdrop-blur-md text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[10px] sm:text-xs font-medium flex items-center gap-1 sm:gap-2 border border-white/20">
+                  <span className="hidden xs:inline">{getSemesterIcon(semester.semesterNumber)}</span>
                   Semester {semester.semesterNumber}
                 </span>
-                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
-                  <FiClock className="w-4 h-4" />
-                  {semester.duration || '6 Months'}
+                <span className="bg-white/20 backdrop-blur-md text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[10px] sm:text-xs font-medium flex items-center gap-1 sm:gap-2 border border-white/20">
+                  <FiClock className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">{semester.duration || '6 Months'}</span>
                 </span>
-                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
-                  <FiBook className="w-4 h-4" />
+                <span className="bg-white/20 backdrop-blur-md text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[10px] sm:text-xs font-medium flex items-center gap-1 sm:gap-2 border border-white/20">
+                  <FiBook className="w-3 h-3 sm:w-4 sm:h-4" />
                   {books.length} Books
                 </span>
               </div>
-              <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg">
+              <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold shadow-lg">
                 {getSemesterLabel(semester.semesterNumber)}
               </span>
             </div>
           </div>
           
           {/* Hero Content */}
-          <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
+          <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-8 z-10">
             <div className="max-w-7xl mx-auto">
               <motion.div 
                 initial={{ y: 30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.6 }}
-                className="flex flex-col lg:flex-row lg:items-end justify-between gap-6"
+                className="flex flex-col gap-2 sm:gap-6"
               >
-                <div className="flex-1">
-                  <h1 className="text-3xl md:text-5xl font-bold text-white mb-3">
+                <div>
+                  <h1 className="text-xl sm:text-3xl md:text-5xl font-bold text-white mb-1 sm:mb-3 line-clamp-2">
                     {semester.title || `Semester ${semester.semesterNumber}`}
                   </h1>
-                  <p className="text-white/80 text-base md:text-lg max-w-3xl">
+                  <p className="text-white/80 text-xs sm:text-base md:text-lg max-w-3xl line-clamp-2">
                     {semester.description || `Explore the ${getSemesterLabel(semester.semesterNumber)} semester of ${semester.programTitle}`}
                   </p>
-                  <div className="flex flex-wrap items-center gap-4 mt-4">
-                    <div className="flex items-center gap-2 text-white/70 text-sm">
-                      <FiBookOpen className="w-4 h-4" />
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 sm:mt-4">
+                    <div className="flex items-center gap-1 sm:gap-2 text-white/70 text-[10px] sm:text-sm">
+                      <FiBookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>{books.length} Books Available</span>
                     </div>
-                    <div className="flex items-center gap-2 text-white/70 text-sm">
-                      <FiTarget className="w-4 h-4" />
+                    <div className="flex items-center gap-1 sm:gap-2 text-white/70 text-[10px] sm:text-sm">
+                      <FiTarget className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>{getSemesterLabel(semester.semesterNumber)} Level</span>
                     </div>
-                    <div className="flex items-center gap-2 text-white/70 text-sm">
-                      <FiZap className="w-4 h-4" />
-                      <span>{semester.programTitle}</span>
+                    <div className="flex items-center gap-1 sm:gap-2 text-white/70 text-[10px] sm:text-sm">
+                      <FaUniversity className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="truncate max-w-[100px] sm:max-w-full">{semester.programTitle}</span>
                     </div>
                   </div>
                 </div>
@@ -389,31 +330,40 @@ const SemesterDetails = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* View Mode Toggle */}
-        <div className="flex items-center justify-end gap-2 mb-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div>
+            <h2 className="text-base sm:text-xl font-bold text-gray-800 flex items-center gap-2">
+              <FiBook className="text-green-500 w-4 h-4 sm:w-5 sm:h-5" />
+              Books in this Semester
+              <span className="text-xs sm:text-sm font-normal text-gray-500 ml-1">
+                ({books.length})
+              </span>
+            </h2>
+          </div>
           <div className="bg-white rounded-xl shadow-md p-1 flex gap-1">
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+              className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium transition-all duration-200 flex items-center gap-1 sm:gap-2 ${
                 viewMode === 'grid'
                   ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <FiGridIcon className="w-4 h-4" />
-              Grid
+              <FiGridIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Grid</span>
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+              className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium transition-all duration-200 flex items-center gap-1 sm:gap-2 ${
                 viewMode === 'list'
                   ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <FiList className="w-4 h-4" />
-              List
+              <FiList className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">List</span>
             </button>
           </div>
         </div>
@@ -423,21 +373,21 @@ const SemesterDetails = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-lg p-16 text-center border-2 border-dashed border-gray-200"
+            className="bg-white rounded-2xl shadow-lg p-8 sm:p-16 text-center border-2 border-dashed border-gray-200"
           >
-            <div className="text-6xl mb-4">📖</div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">No Books Found</h3>
-            <p className="text-gray-600">Books for this semester will be added soon.</p>
+            <div className="text-5xl sm:text-6xl mb-4">📖</div>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">No Books Found</h3>
+            <p className="text-sm sm:text-base text-gray-600">Books for this semester will be added soon.</p>
             <button
               onClick={fetchSemesterDetails}
-              className="mt-4 px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center gap-2"
+              className="mt-4 px-5 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center gap-2 text-sm sm:text-base"
             >
               <FiRefreshCw className="w-4 h-4" />
               Refresh
             </button>
           </motion.div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {books.map((book, index) => (
               <motion.div
                 key={book._id}
@@ -448,7 +398,7 @@ const SemesterDetails = () => {
               >
                 <Link
                   to={`/book/${book._id}`}
-                  className="block group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300"
+                  className="block group relative overflow-hidden rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300"
                 >
                   {/* Gradient Background */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${getBookGradient(index)}`}>
@@ -456,11 +406,11 @@ const SemesterDetails = () => {
                   </div>
                   
                   {/* Decorative Elements */}
-                  <div className="absolute -top-12 -right-12 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
-                  <div className="absolute -bottom-12 -left-12 w-20 h-20 bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
+                  <div className="absolute -top-12 -right-12 w-20 h-20 sm:w-24 sm:h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+                  <div className="absolute -bottom-12 -left-12 w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
                   
                   {/* Book Cover */}
-                  <div className="relative h-48">
+                  <div className="relative h-36 sm:h-48">
                     {book.bookCover ? (
                       <img 
                         src={book.bookCover} 
@@ -472,17 +422,17 @@ const SemesterDetails = () => {
                         }}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-7xl text-white/30">
+                      <div className="w-full h-full flex items-center justify-center text-5xl sm:text-7xl text-white/30">
                         📖
                       </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                      <div className="flex items-center gap-3 text-white/80 text-xs">
-                        <span className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 sm:p-4">
+                      <div className="flex items-center gap-1.5 sm:gap-3 text-white/80 text-[8px] sm:text-xs">
+                        <span className="bg-white/20 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                           📝 {book.totalChapters || 0} Chapters
                         </span>
                         {book.totalPages && (
-                          <span className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
+                          <span className="bg-white/20 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full hidden xs:inline">
                             📄 {book.totalPages} Pages
                           </span>
                         )}
@@ -491,46 +441,46 @@ const SemesterDetails = () => {
                   </div>
                   
                   {/* Book Info */}
-                  <div className="relative p-5 z-10 text-white">
-                    <h3 className="font-bold text-lg group-hover:text-white/90 transition-colors line-clamp-2">
+                  <div className="relative p-3 sm:p-5 z-10 text-white">
+                    <h3 className="font-bold text-sm sm:text-lg group-hover:text-white/90 transition-colors line-clamp-2">
                       {book.title}
                     </h3>
                     
                     {book.description && (
-                      <p className="text-white/70 text-sm mt-2 line-clamp-2">
+                      <p className="text-white/70 text-[10px] sm:text-sm mt-1 sm:mt-2 line-clamp-2 hidden xs:block">
                         {book.description}
                       </p>
                     )}
                     
                     {book.authors && book.authors.length > 0 && book.authors.some(a => a) && (
-                      <div className="flex flex-wrap gap-1 mt-3">
+                      <div className="flex flex-wrap gap-0.5 sm:gap-1 mt-1.5 sm:mt-3">
                         {book.authors.filter(a => a).slice(0, 2).map((author, i) => (
-                          <span key={i} className="text-xs bg-white/20 backdrop-blur-sm text-white px-2 py-0.5 rounded-full">
+                          <span key={i} className="text-[8px] sm:text-xs bg-white/20 backdrop-blur-sm text-white px-1.5 sm:px-2 py-0.5 rounded-full truncate max-w-[60px] sm:max-w-full">
                             ✍️ {author}
                           </span>
                         ))}
                         {book.authors.filter(a => a).length > 2 && (
-                          <span className="text-xs bg-white/20 backdrop-blur-sm text-white px-2 py-0.5 rounded-full">
+                          <span className="text-[8px] sm:text-xs bg-white/20 backdrop-blur-sm text-white px-1.5 sm:px-2 py-0.5 rounded-full">
                             +{book.authors.filter(a => a).length - 2}
                           </span>
                         )}
                       </div>
                     )}
                     
-                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-white/20">
-                      <div className="flex items-center gap-2">
+                    <div className="mt-2 sm:mt-4 flex items-center justify-between pt-1.5 sm:pt-3 border-t border-white/20">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         {book.category && (
-                          <span className="text-xs bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                          <span className="text-[8px] sm:text-xs bg-white/20 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 rounded-full truncate max-w-[60px] sm:max-w-full">
                             {book.category}
                           </span>
                         )}
                       </div>
                       <motion.div 
-                        className="text-white/50 group-hover:text-white/80 transition-colors flex items-center gap-1"
+                        className="text-white/50 group-hover:text-white/80 transition-colors flex items-center gap-0.5 sm:gap-1"
                         whileHover={{ x: 5 }}
                       >
-                        <span className="text-sm font-medium">View</span>
-                        <FiArrowRight className="text-lg" />
+                        <span className="text-[10px] sm:text-sm font-medium">View</span>
+                        <FiArrowRight className="text-sm sm:text-lg" />
                       </motion.div>
                     </div>
                   </div>
@@ -545,7 +495,7 @@ const SemesterDetails = () => {
           </div>
         ) : (
           // List View
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {books.map((book, index) => (
               <motion.div
                 key={book._id}
@@ -555,38 +505,38 @@ const SemesterDetails = () => {
               >
                 <Link
                   to={`/book/${book._id}`}
-                  className="block bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 group"
+                  className="block bg-white rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-3 sm:p-4 group"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     <div 
-                      className="w-20 h-20 rounded-xl flex items-center justify-center text-3xl flex-shrink-0"
+                      className="w-14 h-14 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center text-xl sm:text-3xl flex-shrink-0"
                       style={{ background: getBookColor(index) }}
                     >
                       📖
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-800 group-hover:text-green-600 transition-colors">
+                      <h3 className="font-bold text-sm sm:text-base text-gray-800 group-hover:text-green-600 transition-colors line-clamp-1">
                         {book.title}
                       </h3>
                       {book.authors && book.authors.length > 0 && book.authors.some(a => a) && (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-[10px] sm:text-sm text-gray-500 line-clamp-1">
                           by {book.authors.filter(a => a).join(', ')}
                         </p>
                       )}
                       {book.description && (
-                        <p className="text-sm text-gray-600 line-clamp-1">{book.description}</p>
+                        <p className="text-[10px] sm:text-sm text-gray-600 line-clamp-1 hidden xs:block">{book.description}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-sm text-gray-500">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                      <div className="text-[10px] sm:text-sm text-gray-500 hidden sm:block">
                         {book.totalChapters || 0} Chapters
                       </div>
                       {book.category && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-100 text-gray-600 rounded-full text-[8px] sm:text-xs truncate max-w-[50px] sm:max-w-full">
                           {book.category}
                         </span>
                       )}
-                      <FiArrowRight className="text-gray-400 group-hover:text-green-500 transition-colors text-xl" />
+                      <FiArrowRight className="text-gray-400 group-hover:text-green-500 transition-colors text-sm sm:text-xl" />
                     </div>
                   </div>
                 </Link>
@@ -603,9 +553,9 @@ const SemesterDetails = () => {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2"
+            className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl shadow-2xl flex items-center gap-2 text-sm sm:text-base"
           >
-            <FiCheckCircle className="text-green-400" />
+            <FiCheckCircle className="text-green-400 w-4 h-4 sm:w-5 sm:h-5" />
             Link copied to clipboard!
           </motion.div>
         )}
@@ -627,6 +577,21 @@ const SemesterDetails = () => {
         .animate-float-delayed {
           animation: float-delayed 8s ease-in-out infinite;
           animation-delay: 2s;
+        }
+        /* Custom breakpoint for extra small screens */
+        @media (min-width: 480px) {
+          .xs\\:inline {
+            display: inline;
+          }
+          .xs\\:block {
+            display: block;
+          }
+          .xs\\:grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .xs\\:hidden {
+            display: none;
+          }
         }
       `}</style>
     </div>

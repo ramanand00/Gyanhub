@@ -6,7 +6,6 @@ import {
   FiArrowLeft, 
   FiBook, 
   FiClock, 
-  FiCalendar, 
   FiLayers, 
   FiStar,
   FiTrendingUp,
@@ -20,21 +19,11 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiRefreshCw,
-  FiHash,
-  FiEdit3,
-  FiTag,
-  FiFolder,
-  FiFileText,
-  FiPlay,
   FiHeart,
   FiShare2,
-  FiDownload,
-  FiEye,
-  FiBarChart2,
   FiTarget,
   FiZap,
-  FiGift,
-  FiMapPin
+  FiPlay
 } from 'react-icons/fi';
 import { 
   FaSpinner, 
@@ -266,57 +255,9 @@ const ProgramDetails = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-orange-50">
-      {/* Sticky Header */}
-      <div 
-        ref={headerRef}
-        className="sticky top-0 z-50 bg-white/80 backdrop-blur-md transition-all duration-300 border-b border-gray-100"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => navigate('/home')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <FiArrowLeft className="w-5 h-5 text-gray-600" />
-              </motion.button>
-              <div>
-                <h1 className="text-lg font-bold text-gray-800 line-clamp-1">{program.title}</h1>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>{program.category}</span>
-                  <span>•</span>
-                  <span>{stats.totalSemesters} Semesters</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsLiked(!isLiked)}
-                className={`p-2 rounded-lg transition-colors ${isLiked ? 'bg-red-50 text-red-500' : 'hover:bg-gray-100 text-gray-600'}`}
-              >
-                <FiHeart className={`w-5 h-5 ${isLiked ? 'fill-red-500' : ''}`} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleShare}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-              >
-                <FiShare2 className="w-5 h-5" />
-              </motion.button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Program Hero Section */}
       <div className="relative overflow-hidden">
-        {/* Background Image with Parallax Effect */}
-        <div className="h-[500px] w-full relative">
+        <div className="h-[300px] sm:h-[400px] md:h-[450px] lg:h-[500px] w-full relative">
           {program.thumbnail && !imageError ? (
             <div className="absolute inset-0">
               <img 
@@ -325,83 +266,141 @@ const ProgramDetails = () => {
                 className="w-full h-full object-cover"
                 onError={() => setImageError(true)}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent"></div>
             </div>
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-orange-600">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-emerald-800">
               <div className="absolute inset-0 bg-black/20"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-orange-500/20 animate-pulse"></div>
-              <div className="absolute top-20 right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl animate-float"></div>
-              <div className="absolute bottom-20 left-20 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-float-delayed"></div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <FaUniversity className="text-9xl text-white/20" />
+              <div className="absolute inset-0">
+                <div className="absolute top-10 left-10 w-40 h-40 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-10 right-10 w-60 h-60 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                  <FaUniversity className="text-8xl sm:text-9xl text-white/10" />
+                </div>
               </div>
+              <div className="absolute inset-0" style={{
+                backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 0%, transparent 50%)`
+              }}></div>
             </div>
           )}
           
-          {/* Floating badges */}
-          <div className="absolute top-6 left-6 right-6 z-10">
+          {/* Floating Badges - Top */}
+          <div className="absolute top-3 sm:top-4 left-3 sm:left-6 right-3 sm:right-6 z-10">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
-                  <FiBook className="w-4 h-4" />
-                  {stats.totalSemesters} Semesters
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="bg-white/20 backdrop-blur-md text-white px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium flex items-center gap-1 sm:gap-2 border border-white/20 shadow-lg">
+                  <FiBook className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">{stats.totalSemesters} Semesters</span>
+                  <span className="xs:hidden">{stats.totalSemesters}S</span>
                 </span>
-                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
-                  <FiClock className="w-4 h-4" />
-                  {program.duration || '4 Years'}
+                <span className="bg-white/20 backdrop-blur-md text-white px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium flex items-center gap-1 sm:gap-2 border border-white/20 shadow-lg">
+                  <FiClock className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">{program.duration || '4 Years'}</span>
+                  <span className="xs:hidden">{program.duration?.split(' ')[0] || '4'}Y</span>
                 </span>
-                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border border-white/20">
+                <span className="hidden sm:flex bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-medium items-center gap-2 border border-white/20 shadow-lg">
                   <FiUsers className="w-4 h-4" />
                   {stats.totalStudents}+ Students
                 </span>
               </div>
-              <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg">
-                ⭐ Featured Program
-              </span>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setIsLiked(!isLiked)}
+                  className="bg-white/20 backdrop-blur-md p-1.5 sm:p-2 rounded-full border border-white/20 hover:bg-white/30 transition-colors shadow-lg"
+                >
+                  <FiHeart className={`w-4 h-4 sm:w-5 sm:h-5 text-white ${isLiked ? 'fill-red-500' : ''}`} />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleShare}
+                  className="bg-white/20 backdrop-blur-md p-1.5 sm:p-2 rounded-full border border-white/20 hover:bg-white/30 transition-colors shadow-lg"
+                >
+                  <FiShare2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </motion.button>
+                <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg hidden xs:flex items-center gap-1">
+                  <span className="text-xs sm:text-sm">⭐</span>
+                  <span className="hidden sm:inline">Featured</span>
+                </span>
+              </div>
             </div>
           </div>
           
-          {/* Hero Content */}
-          <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
+          {/* Hero Content - Bottom */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 z-10">
             <div className="max-w-7xl mx-auto">
               <motion.div 
-                initial={{ y: 30, opacity: 0 }}
+                initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.6 }}
-                className="flex flex-col lg:flex-row lg:items-end justify-between gap-6"
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="space-y-3 sm:space-y-4"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-medium border border-white/20">
-                      {program.category}
+                {/* Category Badge */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="bg-white/20 backdrop-blur-md px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-white text-[10px] sm:text-xs font-medium border border-white/20 shadow-lg">
+                    {program.category || 'Program'}
+                  </span>
+                  {program.level && (
+                    <span className="bg-green-500/30 backdrop-blur-md px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-white text-[10px] sm:text-xs font-medium border border-green-400/30 shadow-lg">
+                      {program.level}
                     </span>
-                    {/* REMOVED: Completion rate badge */}
+                  )}
+                </div>
+                
+                {/* Title */}
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight">
+                  {program.title}
+                </h1>
+                
+                {/* Description */}
+                <p className="text-white/80 text-sm sm:text-base md:text-lg max-w-2xl line-clamp-2 sm:line-clamp-3">
+                  {program.description || 'Discover an exceptional learning journey designed to help you master the skills and knowledge you need to succeed.'}
+                </p>
+                
+                {/* Quick Stats */}
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-white/70 text-[10px] sm:text-xs">
+                    <FiBookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="font-medium text-white/90">{stats.totalBooks}</span>
+                    <span className="hidden xs:inline">Books</span>
                   </div>
-                  <h1 className="text-4xl md:text-6xl font-bold text-white mb-3 leading-tight">
-                    {program.title}
-                  </h1>
-                  <p className="text-white/80 text-base md:text-lg max-w-2xl line-clamp-2">
-                    {program.description}
-                  </p>
-                  
-                  {/* Quick stats */}
-                  <div className="flex flex-wrap items-center gap-4 mt-4">
-                    <div className="flex items-center gap-2 text-white/70 text-sm">
-                      <FiBookOpen className="w-4 h-4" />
-                      <span>{stats.totalBooks} Books</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-white/70 text-sm">
-                      <FiTarget className="w-4 h-4" />
-                      <span>{stats.totalSemesters} Semesters</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-white/70 text-sm">
-                      <FiZap className="w-4 h-4" />
-                      <span>Updated {new Date(program.updatedAt).toLocaleDateString()}</span>
-                    </div>
+                  <div className="w-px h-4 bg-white/20"></div>
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-white/70 text-[10px] sm:text-xs">
+                    <FiLayers className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="font-medium text-white/90">{stats.totalSemesters}</span>
+                    <span className="hidden xs:inline">Semesters</span>
+                  </div>
+                  <div className="w-px h-4 bg-white/20"></div>
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-white/70 text-[10px] sm:text-xs">
+                    <FiUsers className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="font-medium text-white/90">{stats.totalStudents}+</span>
+                    <span className="hidden xs:inline">Students</span>
                   </div>
                 </div>
+                
+                {/* CTA Buttons */}
+                {/* <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2 sm:pt-3">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-white text-gray-900 rounded-xl font-semibold text-sm sm:text-base hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+                  >
+                    <FiPlay className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Start Learning</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-white/20 backdrop-blur-md text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-white/30 transition-all duration-200 border border-white/20 flex items-center gap-2"
+                  >
+                    <FiInfo className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="hidden xs:inline">Learn More</span>
+                    <span className="xs:hidden">More</span>
+                  </motion.button>
+                </div> */}
               </motion.div>
             </div>
           </div>
@@ -410,8 +409,8 @@ const ProgramDetails = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-lg p-1 mb-8 overflow-x-auto">
+        {/* Tabs - Optimized for Mobile */}
+        <div className="bg-white rounded-2xl shadow-lg p-1 mb-6 overflow-x-auto">
           <div className="flex gap-1 min-w-max">
             {['overview', 'semesters', 'curriculum', 'reviews'].map((tab) => (
               <motion.button
@@ -419,16 +418,25 @@ const ProgramDetails = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 capitalize ${
-                  activeTab === tab
+                className={`
+                  px-3 sm:px-6 
+                  py-2 sm:py-3 
+                  rounded-xl 
+                  font-medium 
+                  transition-all duration-200 
+                  capitalize 
+                  text-xs sm:text-sm
+                  whitespace-nowrap
+                  ${activeTab === tab
                     ? 'bg-gradient-to-r from-green-500 to-orange-500 text-white shadow-lg'
                     : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                  }
+                `}
               >
-                {tab === 'overview' && <FiInfo className="inline mr-2" />}
-                {tab === 'semesters' && <FiLayers className="inline mr-2" />}
-                {tab === 'curriculum' && <FiBookOpen className="inline mr-2" />}
-                {tab === 'reviews' && <FiStar className="inline mr-2" />}
+                {tab === 'overview' && <FiInfo className="inline mr-1 sm:mr-2 text-xs sm:text-sm" />}
+                {tab === 'semesters' && <FiLayers className="inline mr-1 sm:mr-2 text-xs sm:text-sm" />}
+                {tab === 'curriculum' && <FiBookOpen className="inline mr-1 sm:mr-2 text-xs sm:text-sm" />}
+                {tab === 'reviews' && <FiStar className="inline mr-1 sm:mr-2 text-xs sm:text-sm" />}
                 {tab}
               </motion.button>
             ))}
@@ -489,7 +497,7 @@ const ProgramDetails = () => {
 
               {/* Sidebar */}
               <div className="space-y-6">
-                {/* Stats Card - REMOVED COMPLETION RATE */}
+                {/* Stats Card */}
                 <div className="bg-gradient-to-br from-green-500 to-orange-500 rounded-2xl shadow-lg p-6 text-white">
                   <h4 className="text-sm font-medium text-white/80 mb-4">Program Statistics</h4>
                   <div className="space-y-4">
@@ -505,7 +513,6 @@ const ProgramDetails = () => {
                       <span className="text-white/70">Students</span>
                       <span className="text-2xl font-bold">{stats.totalStudents}+</span>
                     </div>
-                    {/* REMOVED: Completion Rate and Progress Bar */}
                   </div>
                 </div>
 
@@ -535,9 +542,6 @@ const ProgramDetails = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* REMOVED: Semester Progress Overview section */}
-
-            {/* Semesters Grid */}
             {semesters.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-lg p-16 text-center border-2 border-dashed border-gray-200">
                 <div className="text-6xl mb-4">📚</div>
@@ -571,23 +575,18 @@ const ProgramDetails = () => {
                         to={`/semester/${semester._id}`}
                         className="block group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300"
                       >
-                        {/* Gradient Background */}
                         <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`}>
                           <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors duration-300"></div>
                         </div>
                         
-                        {/* Decorative Elements */}
                         <div className="absolute -top-12 -right-12 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
                         <div className="absolute -bottom-12 -left-12 w-20 h-20 bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
                         
-                        {/* Floating Emoji */}
                         <div className="absolute top-3 right-3 text-2xl opacity-20 group-hover:opacity-40 transition-opacity">
                           {emoji}
                         </div>
                         
-                        {/* Content */}
                         <div className="relative p-6 z-10">
-                          {/* Semester Number Badge */}
                           <div className="flex items-start justify-between">
                             <div>
                               <div className="flex items-center gap-2 mb-1">
@@ -613,16 +612,12 @@ const ProgramDetails = () => {
                             </div>
                           </div>
                           
-                          {/* Description */}
                           {semester.description && (
                             <p className="text-white/70 text-sm mt-3 line-clamp-2">
                               {semester.description}
                             </p>
                           )}
                           
-                          {/* REMOVED: Progress Bar section */}
-                          
-                          {/* Footer */}
                           <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/20">
                             <div className="flex items-center gap-2 text-white/60 text-xs">
                               <span>⏱️ {semester.duration || '6 Months'}</span>
@@ -641,7 +636,6 @@ const ProgramDetails = () => {
                           </div>
                         </div>
                         
-                        {/* Hover Glow Effect */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                         </div>
@@ -743,12 +737,16 @@ const ProgramDetails = () => {
       {/* Custom CSS for animations */}
       <style jsx>{`
         @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(5deg); }
         }
         @keyframes float-delayed {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(-5deg); }
+        }
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
         }
         .animate-float {
           animation: float 6s ease-in-out infinite;
@@ -756,6 +754,20 @@ const ProgramDetails = () => {
         .animate-float-delayed {
           animation: float-delayed 8s ease-in-out infinite;
           animation-delay: 2s;
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 4s ease-in-out infinite;
+        }
+        .delay-1000 {
+          animation-delay: 1000ms;
+        }
+        @media (max-width: 480px) {
+          .xs\:inline {
+            display: inline !important;
+          }
+          .xs\:hidden {
+            display: none !important;
+          }
         }
       `}</style>
     </div>
