@@ -9,6 +9,51 @@ import {
 } from 'react-icons/fa';
 import { FiMail, FiPhone as FiPhoneIcon, FiMapPin } from 'react-icons/fi';
 
+// Helper function to get profile image or fallback
+const getProfileImageElement = (profileData, getInitials) => {
+  // Debug log to check what we're getting
+  console.log('Profile Data in CV:', profileData);
+  console.log('Profile Picture URL:', profileData?.profilePicture);
+  
+  // Check if profile picture exists and is valid
+  const hasValidImage = profileData?.profilePicture && 
+                        profileData.profilePicture !== '' && 
+                        profileData.profilePicture !== 'null' &&
+                        profileData.profilePicture !== 'undefined';
+  
+  if (hasValidImage) {
+    console.log('Rendering profile image from URL:', profileData.profilePicture);
+    return (
+      <img 
+        src={profileData.profilePicture} 
+        alt={profileData?.name || 'User'}
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        crossOrigin="anonymous"
+        onError={(e) => {
+          console.error('Image failed to load:', profileData.profilePicture);
+          e.target.style.display = 'none';
+          const parent = e.target.parentElement;
+          const initials = getInitials(profileData?.name || 'User');
+          parent.textContent = initials;
+          parent.style.fontSize = '48px';
+          parent.style.fontWeight = 'bold';
+          parent.style.color = 'white';
+        }}
+        onLoad={() => console.log('Image loaded successfully')}
+      />
+    );
+  }
+  
+  // If no valid image, show initials
+  console.log('No valid image, showing initials');
+  const initials = getInitials(profileData?.name || 'User');
+  return (
+    <span style={{ fontSize: '48px', fontWeight: 'bold', color: 'white' }}>
+      {initials}
+    </span>
+  );
+};
+
 // ============================================
 // TEMPLATE 1: Professional Sidebar Layout
 // ============================================
@@ -85,16 +130,7 @@ export const Template1 = ({ profileData, user, formatDate, getInitials, platform
               margin: '0 auto 15px auto',
               overflow: 'hidden'
             }}>
-              {profileData.profilePicture && !profileData.profilePicture.includes('googleusercontent.com') ? (
-                <img 
-                  src={profileData.profilePicture} 
-                  alt={profileData.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  crossOrigin="anonymous"
-                />
-              ) : (
-                getInitials(profileData.name || 'User')
-              )}
+              {getProfileImageElement(profileData, getInitials)}
             </div>
             <h2 style={{ 
               fontSize: '22px', 
@@ -102,9 +138,9 @@ export const Template1 = ({ profileData, user, formatDate, getInitials, platform
               margin: '0 0 5px 0', 
               color: '#1a1a1a'
             }}>
-              {profileData.name || user?.name || 'User'}
+              {profileData?.name || user?.name || 'User'}
             </h2>
-            {profileData.bio && (
+            {profileData?.bio && (
               <p style={{ fontSize: '13px', color: '#666', margin: '0' }}>
                 {profileData.bio}
               </p>
@@ -112,7 +148,7 @@ export const Template1 = ({ profileData, user, formatDate, getInitials, platform
           </div>
 
           {/* About Me / Bio */}
-          {profileData.bio && (
+          {profileData?.bio && (
             <div style={{
               padding: '15px',
               background: '#f8fafc',
@@ -158,13 +194,13 @@ export const Template1 = ({ profileData, user, formatDate, getInitials, platform
                   <span>{user.email}</span>
                 </div>
               )}
-              {profileData.mobileNumber && (
+              {profileData?.mobileNumber && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                   <FiPhoneIcon style={{ color: '#22c55e', fontSize: '14px' }} />
                   <span>{profileData.mobileNumber}</span>
                 </div>
               )}
-              {profileData.address && (profileData.address.city || profileData.address.country) && (
+              {profileData?.address && (profileData.address.city || profileData.address.country) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <FiMapPin style={{ color: '#22c55e', fontSize: '14px' }} />
                   <span>
@@ -177,7 +213,7 @@ export const Template1 = ({ profileData, user, formatDate, getInitials, platform
           </div>
 
           {/* Skills */}
-          {profileData.skills && profileData.skills.length > 0 && (
+          {profileData?.skills && profileData.skills.length > 0 && (
             <div>
               <h3 style={{ 
                 fontSize: '14px', 
@@ -208,7 +244,7 @@ export const Template1 = ({ profileData, user, formatDate, getInitials, platform
           )}
 
           {/* Interests */}
-          {profileData.interests && profileData.interests.length > 0 && (
+          {profileData?.interests && profileData.interests.length > 0 && (
             <div>
               <h3 style={{ 
                 fontSize: '14px', 
@@ -246,7 +282,7 @@ export const Template1 = ({ profileData, user, formatDate, getInitials, platform
           gap: '20px'
         }}>
           {/* Education */}
-          {profileData.education && profileData.education.length > 0 && (
+          {profileData?.education && profileData.education.length > 0 && (
             <div>
               <h3 style={{ 
                 fontSize: '16px', 
@@ -301,7 +337,7 @@ export const Template1 = ({ profileData, user, formatDate, getInitials, platform
           )}
 
           {/* Social Links */}
-          {Object.values(profileData.socialLinks || {}).some(v => v) && (
+          {profileData?.socialLinks && Object.values(profileData.socialLinks).some(v => v) && (
             <div>
               <h3 style={{ 
                 fontSize: '16px', 
@@ -436,7 +472,7 @@ export const Template1 = ({ profileData, user, formatDate, getInitials, platform
               year: 'numeric',
               month: 'long',
               day: 'numeric'
-            })} • {profileData.name || 'User'} • {platformName}</span>
+            })} • {profileData?.name || 'User'} • {platformName}</span>
           </div>
         </div>
       </div>
@@ -502,28 +538,12 @@ export const Template2 = ({ profileData, user, formatDate, getInitials, platform
     fontFamily: 'Arial, sans-serif'
   };
 
-  // Helper to get social media icon
-  const getSocialIcon = (platform) => {
-    switch(platform) {
-      case 'linkedin': return <FaLinkedin style={{ color: '#0A66C2' }} />;
-      case 'github': return <FaGithub style={{ color: '#333' }} />;
-      case 'twitter': return <FaTwitter style={{ color: '#1DA1F2' }} />;
-      case 'instagram': return <FaInstagram style={{ color: '#E4405F' }} />;
-      case 'facebook': return <FaFacebook style={{ color: '#1877F2' }} />;
-      case 'youtube': return <FaYoutube style={{ color: '#FF0000' }} />;
-      case 'website': return <FaGlobe style={{ color: '#22c55e' }} />;
-      default: return <FaLink style={{ color: '#666' }} />;
-    }
-  };
-
   return (
     <div style={pageStyle}>
-      {/* Watermark - Platform Name only */}
       <div style={watermarkStyle}>
         {platformName}
       </div>
 
-      {/* Header with Logo */}
       <div style={{ 
         display: 'flex',
         justifyContent: 'space-between',
@@ -575,16 +595,7 @@ export const Template2 = ({ profileData, user, formatDate, getInitials, platform
           margin: '0 auto 15px auto',
           overflow: 'hidden'
         }}>
-          {profileData.profilePicture && !profileData.profilePicture.includes('googleusercontent.com') ? (
-            <img 
-              src={profileData.profilePicture} 
-              alt={profileData.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              crossOrigin="anonymous"
-            />
-          ) : (
-            getInitials(profileData.name || 'User')
-          )}
+          {getProfileImageElement(profileData, getInitials)}
         </div>
         <h1 style={{ 
           fontSize: '32px', 
@@ -592,9 +603,9 @@ export const Template2 = ({ profileData, user, formatDate, getInitials, platform
           margin: '0 0 5px 0', 
           color: '#1a1a1a'
         }}>
-          {profileData.name || user?.name || 'User'}
+          {profileData?.name || user?.name || 'User'}
         </h1>
-        {profileData.bio && (
+        {profileData?.bio && (
           <p style={{ fontSize: '16px', color: '#666', margin: '5px 0 0 0' }}>
             {profileData.bio}
           </p>
@@ -614,7 +625,7 @@ export const Template2 = ({ profileData, user, formatDate, getInitials, platform
               {user.email}
             </span>
           )}
-          {profileData.mobileNumber && (
+          {profileData?.mobileNumber && (
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <FiPhoneIcon style={{ color: '#22c55e' }} />
               {profileData.mobileNumber}
@@ -642,7 +653,7 @@ export const Template2 = ({ profileData, user, formatDate, getInitials, platform
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FaUser style={{ color: '#22c55e', fontSize: '14px' }} />
-            <strong>Full Name:</strong> {profileData.name || 'N/A'}
+            <strong>Full Name:</strong> {profileData?.name || 'N/A'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FiMail style={{ color: '#22c55e', fontSize: '14px' }} />
@@ -650,13 +661,13 @@ export const Template2 = ({ profileData, user, formatDate, getInitials, platform
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FiPhoneIcon style={{ color: '#22c55e', fontSize: '14px' }} />
-            <strong>Mobile:</strong> {profileData.mobileNumber || 'N/A'}
+            <strong>Mobile:</strong> {profileData?.mobileNumber || 'N/A'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FaCalendarAlt style={{ color: '#22c55e', fontSize: '14px' }} />
             <strong>Member Since:</strong> {formatDate(user?.createdAt)}
           </div>
-          {profileData.address && (profileData.address.street || profileData.address.city) && (
+          {profileData?.address && (profileData.address.street || profileData.address.city) && (
             <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <FiMapPin style={{ color: '#22c55e', fontSize: '14px' }} />
               <strong>Address:</strong> {profileData.address.street && `${profileData.address.street}, `}
@@ -670,7 +681,7 @@ export const Template2 = ({ profileData, user, formatDate, getInitials, platform
       </div>
 
       {/* Education */}
-      {profileData.education && profileData.education.length > 0 && (
+      {profileData?.education && profileData.education.length > 0 && (
         <div style={{ position: 'relative', zIndex: 1, flex: 1 }}>
           <h2 style={{ 
             fontSize: '18px', 
@@ -828,7 +839,7 @@ export const Template2Page2 = ({ profileData, user, formatDate, getInitials, pla
       </div>
 
       {/* Skills */}
-      {profileData.skills && profileData.skills.length > 0 && (
+      {profileData?.skills && profileData.skills.length > 0 && (
         <div style={{ marginBottom: '25px', position: 'relative', zIndex: 1 }}>
           <h2 style={{ 
             fontSize: '18px', 
@@ -866,7 +877,7 @@ export const Template2Page2 = ({ profileData, user, formatDate, getInitials, pla
       )}
 
       {/* Interests */}
-      {profileData.interests && profileData.interests.length > 0 && (
+      {profileData?.interests && profileData.interests.length > 0 && (
         <div style={{ marginBottom: '25px', position: 'relative', zIndex: 1 }}>
           <h2 style={{ 
             fontSize: '18px', 
@@ -904,7 +915,7 @@ export const Template2Page2 = ({ profileData, user, formatDate, getInitials, pla
       )}
 
       {/* Social Links */}
-      {Object.values(profileData.socialLinks || {}).some(v => v) && (
+      {profileData?.socialLinks && Object.values(profileData.socialLinks).some(v => v) && (
         <div style={{ position: 'relative', zIndex: 1, flex: 1 }}>
           <h2 style={{ 
             fontSize: '18px', 
