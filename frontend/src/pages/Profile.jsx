@@ -29,7 +29,10 @@ import {
   FiChevronRight,
   FiStar,
   FiAward,
-  FiClock
+  FiClock,
+  FiDownload,
+  FiEye,
+  FiPrinter
 } from 'react-icons/fi';
 import { 
   FaSpinner,
@@ -73,6 +76,9 @@ import {
   FaSun,
   FaMoon
 } from 'react-icons/fa';
+import CVPreviewModal from '../components/CVPreviewModal';
+import logo from '../assets/logo.png';
+
 
 const Profile = () => {
   const { user, login } = useAuth();
@@ -80,6 +86,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [showCVPreview, setShowCVPreview] = useState(false);
   const [profileData, setProfileData] = useState({
     name: '',
     mobileNumber: '',
@@ -118,6 +125,18 @@ const Profile = () => {
 
   const [newSkill, setNewSkill] = useState('');
   const [newInterest, setNewInterest] = useState('');
+
+  // Helper function to get initials from name
+  const getInitials = (name) => {
+    if (!name || name === '') {
+      return 'U';
+    }
+    const nameParts = name.trim().split(' ');
+    if (nameParts.length === 1) {
+      return nameParts[0].substring(0, 2).toUpperCase();
+    }
+    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+  };
 
   // Load user data
   useEffect(() => {
@@ -161,23 +180,34 @@ const Profile = () => {
     });
   };
 
-  // Calculate account age
-  const getAccountAge = (date) => {
-    if (!date) return 'N/A';
-    const created = new Date(date);
+  // Calculate days since joined
+  const calculateDaysSinceJoined = (createdAt) => {
+    if (!createdAt) return 0;
+    const created = new Date(createdAt);
     const now = new Date();
     const diffTime = Math.abs(now - created);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Get member since text
+  const getMemberSinceText = (createdAt) => {
+    if (!createdAt) return "";
+    const days = calculateDaysSinceJoined(createdAt);
     
-    if (diffDays < 30) {
-      return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
-    } else if (diffDays < 365) {
-      const months = Math.floor(diffDays / 30);
-      return `${months} month${months > 1 ? 's' : ''}`;
-    } else {
-      const years = Math.floor(diffDays / 365);
-      return `${years} year${years > 1 ? 's' : ''}`;
+    if (days === 0) {
+      return "Member since today";
     }
+    
+    if (days <= 7) {
+      return `Member for ${days} day${days > 1 ? "s" : ""}`;
+    }
+    
+    const createdDate = new Date(createdAt);
+    return `Joined on ${createdDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })}`;
   };
 
   // Handle profile update
@@ -323,9 +353,18 @@ const Profile = () => {
   if (!isEditing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50">
+        <CVPreviewModal 
+          isOpen={showCVPreview}
+          onClose={() => setShowCVPreview(false)}
+          profileData={profileData}
+          user={user}
+          formatDate={formatDate}
+          getInitials={getInitials}
+          platformName="GyanPark"
+          logo={logo}
+        />
+        
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          
-
           {/* Profile Header */}
           <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-8 border-l-4 border-green-500">
             <div className="bg-gradient-to-r from-green-50 to-orange-50 px-8 py-6">
@@ -337,10 +376,17 @@ const Profile = () => {
                         src={profileData.profilePicture} 
                         alt={profileData.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // If image fails to load, show initials
+                          e.target.style.display = 'none';
+                          const parent = e.target.parentElement;
+                          const initials = getInitials(profileData.name || user?.name || 'User');
+                          parent.innerHTML = `<span class="text-white text-4xl font-bold tracking-wider">${initials}</span>`;
+                        }}
                       />
                     ) : (
-                      <span className="text-white text-4xl font-bold">
-                        {profileData.name?.charAt(0) || 'U'}
+                      <span className="text-white text-4xl font-bold tracking-wider">
+                        {getInitials(profileData.name || user?.name || 'User')}
                       </span>
                     )}
                   </div>
@@ -352,7 +398,7 @@ const Profile = () => {
                 <div className="flex-1 text-center md:text-left">
                   <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2">
                     <h2 className="text-3xl font-bold text-gray-800">
-                      {profileData.name}
+                      {profileData.name || user?.name || 'User'}
                     </h2>
                     <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                       <FiCheckCircle className="w-4 h-4 mr-1" />
@@ -378,9 +424,17 @@ const Profile = () => {
                       Edit Profile
                     </button>
                     
+                    <button
+                      onClick={() => setShowCVPreview(true)}
+                      className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                      <FiEye className="w-4 h-4 mr-2" />
+                      View CV
+                    </button>
+                    
                     <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-sm">
                       <FiClock className="w-4 h-4 mr-1" />
-                      Member for {getAccountAge(user?.createdAt)}
+                      {getMemberSinceText(user?.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -388,7 +442,7 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Profile Content */}
+          {/* Profile Content - Rest of the code remains the same */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Main Info */}
             <div className="lg:col-span-2 space-y-6">
@@ -405,7 +459,7 @@ const Profile = () => {
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</p>
                       <p className="text-base font-semibold text-gray-800 mt-1 flex items-center">
-                        <FiUser className="mr-2 text-gray-400" /> {profileData.name}
+                        <FiUser className="mr-2 text-gray-400" /> {profileData.name || user?.name || 'User'}
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3">
@@ -640,7 +694,7 @@ const Profile = () => {
     );
   }
 
-  // Edit Mode
+  // Edit Mode - Rest remains the same
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50">
       <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -699,10 +753,16 @@ const Profile = () => {
                     src={profileData.profilePicture} 
                     alt={profileData.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      const parent = e.target.parentElement;
+                      const initials = getInitials(profileData.name || user?.name || 'User');
+                      parent.innerHTML = `<span class="text-white text-4xl font-bold tracking-wider">${initials}</span>`;
+                    }}
                   />
                 ) : (
-                  <span className="text-white text-4xl font-bold">
-                    {profileData.name?.charAt(0) || 'U'}
+                  <span className="text-white text-4xl font-bold tracking-wider">
+                    {getInitials(profileData.name || user?.name || 'User')}
                   </span>
                 )}
               </div>

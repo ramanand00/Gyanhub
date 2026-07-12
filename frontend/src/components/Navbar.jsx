@@ -66,7 +66,7 @@ const Navbar = () => {
   const mobileNavItems = [
     { path: '/home', icon: FiHome, label: 'Home' },
     { path: '/courses', icon: FiBook, label: 'Courses' },
-    { path: '/my-learning', icon: FiBookOpen, label: 'Learning' },
+    // { path: '/my-learning', icon: FiBookOpen, label: 'Learning' },
     { path: '/notifications', icon: FiBell, label: 'Notifications' },
   ];
 
