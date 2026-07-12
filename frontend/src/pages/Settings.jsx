@@ -391,9 +391,9 @@ const Settings = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-gray-400">
+                    {/* <span className="text-xs text-gray-400">
                       {isExpanded ? 'Click to collapse' : 'Click to expand'}
-                    </span>
+                    </span> */}
                     {isExpanded ? (
                       <FiChevronUp className="w-5 h-5 text-green-500" />
                     ) : (
